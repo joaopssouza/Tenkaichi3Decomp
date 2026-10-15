@@ -37,6 +37,16 @@ async function afterFighting(g, blanks) {
 
 const distinct = (list) => new Set(list.map((f) => f.pos.map((v) => v.toFixed(1)).join(','))).size;
 
+test('the extra memory for Tag Team fighters is there, 16 MB, and a two-fighter battle leaves it untouched', opts, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt' } });
+  try {
+    await afterFighting(g, 10);
+    assert.deepStrictEqual(await g.evaluate(() => [Module._Web_ExtraSize(), Module._Web_ExtraUsed()]), [16 << 20, 0]);
+  } finally {
+    await g.close();
+  }
+});
+
 test('without BT3_TAG the demo battle has its two fighters, one per side', opts, async () => {
   const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt' } });
   try {
