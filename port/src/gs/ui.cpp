@@ -7,7 +7,9 @@
 #include <stdint.h>
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
+#ifndef __EMSCRIPTEN__
 #include "imgui_impl_sdlgpu3.h"
+#endif
 #include "imgui_impl_opengl3.h"
 #include "ui.h"
 #include "namefont.h"
@@ -226,7 +228,9 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
         "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/liberation/LiberationSans-Regular.ttf", "C:\\Windows\\Fonts\\segoeui.ttf",
     };
+#ifndef __EMSCRIPTEN__
     ImGui_ImplSDLGPU3_InitInfo info;
+#endif
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -252,6 +256,7 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
         if (!ImGui_ImplSDL3_InitForOpenGL(window, (SDL_GLContext)gl_context) || !ImGui_ImplOpenGL3_Init(glsl)) {
             return 0;
         }
+#ifndef __EMSCRIPTEN__
     } else {
         if (!ImGui_ImplSDL3_InitForSDLGPU(window)) {
             return 0;
@@ -262,6 +267,7 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
         if (!ImGui_ImplSDLGPU3_Init(&info)) {
             return 0;
         }
+#endif
     }
     sDevice = device;
     sReady = true;
@@ -278,13 +284,32 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
     return 1;
 }
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+EM_JS(void, web_overlay_toggle_js, (int open), {
+    if (typeof window.onOverlayToggle === 'function') {
+        window.onOverlayToggle(open);
+    }
+});
+#endif
+
 static void set_open(bool open) {
     sOpen = open;
     sNet = false;
     sCapKind = 0;
     gPortInputCapture = 0;
     gPortOverlayOpen = open;
+#ifdef __EMSCRIPTEN__
+    web_overlay_toggle_js(open ? 1 : 0);
+#endif
 }
+
+#ifdef __EMSCRIPTEN__
+extern "C" EMSCRIPTEN_KEEPALIVE int Web_UiIsOpen(void) {
+    return sOpen ? 1 : 0;
+}
+#endif
+
 
 // Dragon Net Battle: the screen behind the main menu's entry. For now only its shape: what a player fills in to
 // host or join. Nothing is sent anywhere yet.
@@ -302,6 +327,7 @@ extern "C" int gWebInputHeld;
 EM_JS(void, web_net_menu_js, (void), { if (Module.onNetMenu) Module.onNetMenu(); });
 static void web_net_menu(void) {
     gWebInputHeld = 1;
+    set_open(false);
     web_net_menu_js();
 }
 extern "C" EMSCRIPTEN_KEEPALIVE void Web_NetMenuClosed(void) {
@@ -456,6 +482,11 @@ static void build_net(void) {
 
 void Ui_Toggle(void) {
     if (sReady) {
+#ifdef __EMSCRIPTEN__
+        if (gWebInputHeld) {
+            return;
+        }
+#endif
         set_open(!sOpen);
     }
 }
@@ -759,8 +790,21 @@ static void build(void) {
 
     GsGpu_GetSettings(&v);
     was = v;
-    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(640.0f, 560.0f), ImGuiCond_Appearing);
+#ifdef __EMSCRIPTEN__
+    float fontScale = 1.0f;
+    if (io.DisplaySize.y > 0.0f && io.DisplaySize.y < 460.0f) {
+        fontScale = io.DisplaySize.y / 460.0f;
+        if (fontScale < 0.72f) fontScale = 0.72f;
+    }
+    io.FontGlobalScale = fontScale;
+#endif
+    float maxW = io.DisplaySize.x > 0.0f ? io.DisplaySize.x * 0.95f : 640.0f;
+    float maxH = io.DisplaySize.y > 0.0f ? io.DisplaySize.y * 0.92f : 560.0f;
+    float winW = maxW < 640.0f ? maxW : 640.0f;
+    float winH = maxH < 560.0f ? maxH : 560.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(winW, winH), ImGuiCond_Always);
     if (ImGui::Begin("Settings", &open, ImGuiWindowFlags_NoCollapse)) {
         if (ImGui::BeginTabBar("tabs")) {
             if (tab("Video", 0)) { video_tab(v); ImGui::EndTabItem(); }
@@ -798,6 +842,7 @@ static void build(void) {
 static bool sBuilt; // this frame has something to draw: the window, or the line over the picture
 
 void Ui_DrawAgain(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target) {
+#ifndef __EMSCRIPTEN__
     ImDrawData *dd = sReady && sBuilt ? ImGui::GetDrawData() : NULL; // (sBuilt: Ui_Draw made a picture this frame)
     SDL_GPUColorTargetInfo ti;
     SDL_GPURenderPass *pass;
@@ -813,6 +858,7 @@ void Ui_DrawAgain(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target) {
     pass = SDL_BeginGPURenderPass(cmd, &ti, 1, NULL);
     ImGui_ImplSDLGPU3_RenderDrawData(dd, cmd, pass);
     SDL_EndGPURenderPass(pass);
+#endif
 }
 
 static char sNotice[160];
@@ -955,6 +1001,7 @@ static bool frame_build(void) {
     } else if (sReady && gPortNetMenuRequest) { // Dragon Net Battle was chosen in the game's main menu
         gPortNetMenuRequest = 0;
 #ifdef __EMSCRIPTEN__
+        set_open(false);
         web_net_menu(); // the browser: the page's own online screens (port/web/net.js), over the main menu
 #else
         net_open();
@@ -981,9 +1028,12 @@ static bool frame_build(void) {
     sBuilt = true;
     if (sGL) {
         ImGui_ImplOpenGL3_NewFrame();
-    } else {
+    }
+#ifndef __EMSCRIPTEN__
+    else {
         ImGui_ImplSDLGPU3_NewFrame();
     }
+#endif
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     if (sOpen) {

@@ -65,9 +65,13 @@ def main():
     r, out = link(target, objs + [str(so)], [])
     if target != "node":
         (OUT / "index.html").write_text((WEB / "shell.html").read_text())
-        for f in ("net.js", "net.css"):  # online play's screens and connection (Dragon Net Battle)
-            shutil.copy(WEB / f, OUT / f)
-        subprocess.run([sys.executable, str(WEB / "make_icons.py")], check=True)
+        for f in ("net.js", "net.css", "sw.js"):  # online play screens and Service Worker
+            if (WEB / f).exists():
+                shutil.copy(WEB / f, OUT / f)
+        try:
+            subprocess.run([sys.executable, str(WEB / "make_icons.py")])
+        except Exception as e:
+            print("make_icons skipped:", e)
     errs = [l for l in r.stderr.splitlines() if "error" in l or "mismatch" in l]
     print(f"{len(need)} stubs; link {'OK -> ' + str(out.relative_to(ROOT)) if r.returncode == 0 else 'FAILED'}")
     for l in errs[:20]:

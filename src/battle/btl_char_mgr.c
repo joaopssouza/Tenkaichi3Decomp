@@ -1330,8 +1330,13 @@ void BtlChar_ResetAll(void) {
     BtlReplay_ResetViewer();
     for (i = 0; i < BtlChar_GetCount(); i++) {
         chr = BtlChar_Get(i);
-        chr->side = i;
-        pad = BattleSide_GetPad(i);
+        if (BtlChar_GetCount() > 2) {
+            chr->side = (i & 1);
+            pad = i;
+        } else {
+            chr->side = i;
+            pad = BattleSide_GetPad(i);
+        }
         chr->index = i;
         chr->pad = pad;
         BtlChar_BindObject(chr);

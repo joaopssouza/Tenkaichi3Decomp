@@ -1274,7 +1274,7 @@ int GsGpu_Init(void) {
     gsWhite = sb->whiteTex();
     gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 31;
     gsGlowPercent = getenv("BT3_GLOW") != NULL ? atoi(getenv("BT3_GLOW")) : Port_Setting("glow", GLOW_DEFAULT);
-    sTexPackOn = Port_Setting("texture_pack", 1) != 0;
+    sTexPackOn = getenv("BT3_HD_TEXTURES") != NULL ? atoi(getenv("BT3_HD_TEXTURES")) != 0 : Port_Setting("texture_pack", 0) != 0;
     gPortMusicPercent = Port_Setting("music", 100);
     gPortSePercent = Port_Setting("effects", 100);
     TexPack_Init();

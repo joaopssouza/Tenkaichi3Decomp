@@ -129,7 +129,8 @@ int __wrap_Progress_Main(int arg) {
                     *(int *)((char *)gProgress + 0x630) = dp;
                     Save_UnlockAll(gSaveData);
                     *(int *)((char *)gSaveData + 0xC34) = time;
-                    fprintf(stderr, "bt3: net: rules: %s%s, time limit %s\n", type == 0 ? "single battle" : type == 1 ? "team battle" : "DP battle",
+                    fprintf(stderr, "bt3: net: rules: %s%s, time limit %s\n",
+                            type == 0 ? "single battle" : type == 1 ? "team battle" : type == 2 ? "DP battle" : "tag team 2v2",
                             type == 2 ? (dp == 0 ? " (10)" : dp == 1 ? " (15)" : " (20)") : "",
                             time == 0 ? "60" : time == 1 ? "90" : time == 2 ? "180" : time == 3 ? "240" : "none");
                 }

@@ -1724,6 +1724,34 @@ f32 TeamSel_Input(s32 *result) {
                         CUR_SIDE->cur = CUR_SIDE->memberCount;
                     }
                     TeamSel_SetTeamTex(CUR_N);
+#if defined(PORT) || defined(__EMSCRIPTEN__) || !defined(TARGET_PS2)
+                    {
+                        int isTagTeam = (gTeamSel->battleType == 3) ||
+                            (getenv("BT3_NET_TAG") != NULL && atoi(getenv("BT3_NET_TAG")) != 0) ||
+                            (getenv("BT3_TAG_TEAM") != NULL && atoi(getenv("BT3_TAG_TEAM")) != 0);
+                        if (isTagTeam && CUR_SIDE->memberCount >= 2) {
+                            CUR_SIDE->memberCount = 2;
+                            CUR_SIDE->cur = TS_CUR_MENU;
+                            Flash_GotoLabel(&gTeamSel->flash[CUR_N + 1], "fl_out", 1);
+                            TeamSel_ClipGoto(CUR_N + 1, CUR_N, TEAMSEL_CLIP_TEAM, "fl_ok");
+                            CUR_SIDE->state = TEAMSEL_ST_DONE;
+                            if (gTeamSel->players != TEAMSEL_PLAYERS_TWO && gTeamSel->base == 0) {
+                                /* one pad: it goes on to the second team */
+                                gTeamSel->base = 1;
+                                TeamSel_ClipGoto(CUR_N + 3, CUR_N, TEAMSEL_CLIP_CHIP, "fl_on_start");
+                                CUR_SIDE->state = TEAMSEL_ST_GRID;
+                            }
+                            if (CUR_SIDE->flags & TEAMSEL_SIDE_FORM) {
+                                CUR_SIDE->flags ^= TEAMSEL_SIDE_FORM;
+                            }
+                            if (CUR_SIDE->flags & TEAMSEL_SIDE_CUSTOM) {
+                                CUR_SIDE->flags ^= TEAMSEL_SIDE_CUSTOM;
+                            }
+                            Snd_PlaySe(1, 1);
+                            break;
+                        }
+                    }
+#endif
                     TeamSel_ClipGoto(CUR_N + 1, CUR_N, TEAMSEL_CLIP_TEAM, "fl_on_start");
                     if (CUR_SIDE->cur == TS_CUR_MENU) {
                         CUR_SIDE->chara = CUR_SIDE->member[0].chara;

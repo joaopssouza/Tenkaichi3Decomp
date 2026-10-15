@@ -300,7 +300,28 @@ int TexPack_Load(const char *path, TexPackImage *img) {
     if (strlen(path) > 4 && SDL_strcasecmp(path + strlen(path) - 4, ".png") == 0) {
         return load_png(path, img);
     }
+#ifdef __EMSCRIPTEN__
+    FILE *fp = fopen(path, "rb");
+    if (fp != NULL) {
+        fseek(fp, 0, SEEK_END);
+        long sz = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        if (sz >= 128) {
+            f = SDL_malloc((size_t)sz);
+            if (f != NULL && fread(f, 1, (size_t)sz, fp) == (size_t)sz) {
+                size = (size_t)sz;
+            } else {
+                SDL_free(f);
+                f = NULL;
+            }
+        }
+        fclose(fp);
+    } else {
+        f = NULL;
+    }
+#else
     f = SDL_LoadFile(path, &size);
+#endif
     if (f == NULL || size < 128 || memcmp(f, "DDS ", 4) != 0) {
         SDL_free(f);
         return 0;

@@ -148,10 +148,20 @@ s32 Battle_Restart(void) {
 
 /* Loads the battle data, creates every battle subsystem, then starts the first match. */
 s32 Battle_Init(void) {
+    s32 numFighters = 2;
+#if defined(PORT) || defined(__EMSCRIPTEN__) || !defined(TARGET_PS2)
+    extern void Port_NetRules(int *type, int *dp, int *time);
+    int netType = 0, dp = 0, time = 0;
+    Port_NetRules(&netType, &dp, &time);
+    if (netType == 3 || (getenv("BT3_NET_TAG") != NULL && atoi(getenv("BT3_NET_TAG")) != 0) ||
+        (getenv("BT3_TAG_TEAM") != NULL && atoi(getenv("BT3_TAG_TEAM")) != 0)) {
+        numFighters = 4;
+    }
+#endif
     Battle_Load();
     StgFx_Init();
     StgModel_InitStage();
-    BtlChar_AllocAll(2);
+    BtlChar_AllocAll(numFighters);
     BtlAiMgr_Init();
     BtlCam_Init();
     StgNav_Init();

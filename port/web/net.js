@@ -22,8 +22,43 @@
   if (!cid) { cid = Math.random().toString(36).slice(2, 12); store.set('bt3.cid', cid); }
   const myName = () => store.get('bt3.name', 'Player').slice(0, 16) || 'Player';
   const named = () => !!(store.get('bt3.name', '') || '').trim(); // (a name was chosen: asked for before the first match)
-  const wsUrl = (room, role, phase) => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/net/ws?room=${room}` +
-    `&role=${role}&phase=${phase}&name=${encodeURIComponent(myName())}&cid=${cid}`;
+  const getSignalingEndpoint = (pathAndQuery) => {
+    // 1. Check window/Module configuration or query parameters
+    const customUrl = (window.SIGNALING_URL || window.WS_URL || (window.Module && window.Module.signalingUrl) || Q.get('ws') || Q.get('signaling') || '').trim();
+    if (customUrl) {
+      if (/^wss?:\/\//i.test(customUrl)) {
+        const base = customUrl.replace(/\/+$/, '');
+        return `${base}${pathAndQuery}`;
+      }
+      if (/^https?:\/\//i.test(customUrl)) {
+        const proto = customUrl.startsWith('https') ? 'wss' : 'ws';
+        const host = customUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+        return `${proto}://${host}${pathAndQuery}`;
+      }
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      return `${proto}://${customUrl.replace(/\/+$/, '')}${pathAndQuery}`;
+    }
+    // Default: relative to current origin
+    return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${pathAndQuery}`;
+  };
+
+  const wsUrl = (room, role, phase) => {
+    const modeParam = session && session.mode ? `&mode=${encodeURIComponent(session.mode)}` : (Q.get('mode') ? `&mode=${encodeURIComponent(Q.get('mode'))}` : '');
+    const slotsParam = session && session.slots ? `&slots=${encodeURIComponent(session.slots)}` : (Q.get('slots') ? `&slots=${encodeURIComponent(Q.get('slots'))}` : '');
+    const q = `/net/ws?room=${room}&role=${role}&phase=${phase}&name=${encodeURIComponent(myName())}&cid=${cid}${modeParam}${slotsParam}`;
+    return getSignalingEndpoint(q);
+  };
+  const queueUrl = () => {
+    const q = `/net/queue?name=${encodeURIComponent(myName())}&cid=${cid}`;
+    return getSignalingEndpoint(q);
+  };
+  const statUrl = () => {
+    const customUrl = (window.SIGNALING_URL || (window.Module && window.Module.signalingUrl) || '').trim();
+    if (customUrl && /^https?:\/\//i.test(customUrl)) {
+      return `${customUrl.replace(/\/+$/, '')}/net/stat`;
+    }
+    return '/net/stat';
+  };
   const newCode = () => Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join('');
   const log = (t) => { try { (window.Module && Module.keep ? Module.keep : console.log)('net: ' + t); } catch (e) {} };
 
@@ -31,11 +66,14 @@
   // The link to the other player in a session: the room's WebSocket for setting up, a WebRTC data channel for the
   // game's packets, and the WebSocket itself when the channel does not open (some mobile networks).
   // ---------------------------------------------------------------------------------------------------------------
-  const ICE = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
+  const ICE = (window.ICE_SERVERS || [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+  ]);
   const Link = {
-    ws: null, pc: null, dc: null, mode: '', queue: [], peerName: '', onState: null, keep: 0, gone: false,
+    ws: null, pc: null, dc: null, mode: '', queue: [], peerName: '', onState: null, keep: 0, gone: false, myRole: '',
 
     open(room, role) {
+      this.myRole = role;
       return new Promise((resolve, reject) => {
         const ws = new WebSocket(wsUrl(room, role, 'session'));
         ws.binaryType = 'arraybuffer';
@@ -55,10 +93,31 @@
         ws.onmessage = async (e) => {
           if (typeof e.data !== 'string') { this.push(new Uint8Array(e.data)); return; }
           const m = JSON.parse(e.data);
-          if (m.t === 'peer') {
-            this.peerName = m.name || '';
-            this.onState && this.onState('peer', m.name);
-            if (role === 'host') this.offer(ws);
+          if (m.t === 'assigned_role') {
+            this.myRole = m.role;
+            if (session) session.role = m.role;
+          } else if (m.t === 'session_ready') {
+            log('all peers in session, starting relay');
+            relay();
+          } else if (m.t === 'peer' || m.t === 'peers' || m.t === 'peer_joined') {
+            // Only update myRole if explicitly given as myRole or assigned_role
+            if (m.myRole) {
+              this.myRole = m.myRole;
+              if (session) session.role = m.myRole;
+            }
+            if (m.t === 'peer' || m.t === 'peer_joined') {
+              this.peerName = m.name || '';
+              this.peerRole = m.peerRole || m.role || '';
+            }
+            const peerDisplayName = (typeof m === 'object' && m ? (m.name || (m.peers && m.peers[0] && m.peers[0].name) || this.peerName) : m) || 'your opponent';
+            this.onState && this.onState(m.t, peerDisplayName);
+            if (session && (session.mode === 'tag' || session.slots === '4' || Q.get('mode') === 'tag' || Q.get('slots') === '4')) {
+              // 4-player Tag Team mode waits for session_ready from the hub, with safety fallback
+              clearTimeout(fallback);
+              fallback = setTimeout(relay, 6000);
+            } else if (role === 'host') {
+              this.offer(ws);
+            }
             clearTimeout(fallback);
             fallback = setTimeout(relay, 8000); // no direct channel in this time: through the room
           } else if (m.t === 'sig') {
@@ -137,24 +196,57 @@
   };
 
   // ---------------------------------------------------------------------------------------------------------------
-  // The session: this page was loaded into a match (?net=host|join&room=CODE). The program's environment for it,
+  // The session: this page was loaded into a match (?net=host|join|p3|p4&room=CODE). The program's environment for it,
   // and the connection made before the program starts.
   // ---------------------------------------------------------------------------------------------------------------
-  const session = Q.get('net') === 'host' || Q.get('net') === 'join' ? { role: Q.get('net'), room: (Q.get('room') || '').toUpperCase(),
-    rules: Q.get('rules') || '', other: Q.get('vs') || '' } : null;
+  const netParam = Q.get('net');
+  const isNetSession = ['host', 'join', 'p3', 'p4'].includes(netParam);
+  const session = isNetSession ? {
+    role: netParam,
+    room: (Q.get('room') || '').toUpperCase(),
+    rules: Q.get('rules') || '',
+    other: Q.get('vs') || '',
+    mode: Q.get('mode') || '',
+    slots: Q.get('slots') || (Q.get('mode') === 'tag' || Q.get('rules') === '771' ? '4' : '2'),
+    humans: Q.get('humans') || ''
+  } : null;
 
   // what the program reads at start-up (shell.html adds it to ENV)
   function sessionEnv() {
-    // (the opening movie: off unless ?movie=1. It is read whole, some 120 MB, before it can play or be skipped: on a
-    // phone a long wait after the logos, and much of its memory)
-    if (!session) return Q.get('movie') === '1' ? {} : { BT3_NOMOVIE: '1' };
+    if (!session) {
+      const e = Q.get('movie') === '1' ? {} : { BT3_NOMOVIE: '1' };
+      if (Q.get('hd')) e.BT3_HD_TEXTURES = Q.get('hd');
+      return e;
+    }
+    const isTag = session.mode === 'tag' || session.slots === '4' || session.rules === '771';
+    const effectiveRole = session.role || Link.myRole || 'join';
+    let playerIdx = '0';
+    if (effectiveRole === 'join') playerIdx = '1';
+    else if (effectiveRole === 'p3') playerIdx = '2';
+    else if (effectiveRole === 'p4') playerIdx = '3';
+
     const env = {
-      BT3_NET_SESSION: '1', BT3_NET_NAME: myName(), BT3_NET_DELAY: 'auto', BT3_NOMOVIE: '1', BT3_SOUND_TICKS: '1',
-      BT3_SAVES: '/net_session', BT3_UNLOCK_ALL: '0', // (the session unlocks everything itself, the same moment on both sides)
+      BT3_NET_SESSION: '1',
+      BT3_NET_NAME: myName(),
+      BT3_NET_DELAY: 'auto',
+      BT3_NOMOVIE: '1',
+      BT3_SOUND_TICKS: '1',
+      BT3_SAVES: '/net_session',
+      BT3_UNLOCK_ALL: '0', // (the session unlocks everything itself, the same moment on all sides)
       BT3_NET_VOICE: store.get('bt3.voice', 'default'),
+      BT3_HD_TEXTURES: Q.get('hd') || '0',
+      BT3_NET_PLAYER: playerIdx,
+      BT3_NET_TAG: isTag ? '1' : '0',
+      BT3_NET_PLAYERS: isTag ? '4' : '2',
+      BT3_NET_HUMANS: Q.get('humans') || session.humans || (session.slots === '4' ? (Q.get('humans') || '4') : '2')
     };
-    if (session.role === 'host') { env.BT3_NET_HOST = '1'; env.BT3_NET_RULES = session.rules || String(3 << 8); }
-    else env.BT3_NET_JOIN = '127.0.0.1:1';
+    if (effectiveRole === 'host') {
+      env.BT3_NET_HOST = '1';
+      env.BT3_NET_RULES = session.rules || (isTag ? '771' : String(3 << 8));
+    } else {
+      env.BT3_NET_JOIN = '127.0.0.1:1';
+      if (session.rules) env.BT3_NET_RULES = session.rules;
+    }
     return env;
   }
 
@@ -162,8 +254,15 @@
   async function sessionConnect() {
     UI.mount();
     UI.show('connect');
-    Link.onState = (what, name) => {
-      if (what === 'peer') UI.connectText(`Connecting to ${name || 'your opponent'}...`);
+    Link.onState = (what, data) => {
+      const displayName = typeof data === 'object' && data !== null
+        ? (data.name || data.peerName || 'your opponent')
+        : (data || 'your opponent');
+      if (what === 'peer' || what === 'peer_joined') {
+        UI.connectText(`Connecting to ${displayName}...`);
+      } else if (what === 'peers') {
+        UI.connectText(`Connecting with players in room...`);
+      }
       if (what === 'left') leave('The other player left the match.');
     };
     try {
@@ -189,7 +288,7 @@
     const dev = /iPhone|iPad/.test(navigator.userAgent) ? (/iPad/.test(navigator.userAgent) ? 'iPad' : 'iPhone')
       : /Android/.test(navigator.userAgent) ? 'Android' : /Mac/.test(navigator.platform) ? 'Mac' : 'PC';
     const build = (document.querySelector('script[src$="bt3-async.js"]') ? 'async' : 'jspi');
-    const post = (e) => { try { fetch('/net/stat', { method: 'POST', body: JSON.stringify(e), keepalive: true }).catch(() => {}); } catch (x) {} };
+    const post = (e) => { try { fetch(statUrl(), { method: 'POST', body: JSON.stringify(e), keepalive: true }).catch(() => {}); } catch (x) {} };
     post({ ev: 'start', room, role, dev, build, link: mode, w: innerWidth, h: innerHeight, dpr: devicePixelRatio });
     let lastBlanks = 0, lastT = performance.now();
     setInterval(() => {
@@ -207,9 +306,15 @@
   function leave(why) {
     Link.close();
     const u = new URL(location.href);
-    for (const k of ['net', 'room', 'rules', 'vs']) u.searchParams.delete(k);
+    for (const k of ['net', 'room', 'rules', 'vs', 'lobby']) u.searchParams.delete(k);
     u.searchParams.set('nomovie', '1');
     if (why) u.searchParams.set('netmsg', why); else u.searchParams.delete('netmsg');
+    try {
+      history.replaceState({}, document.title, u.pathname + (u.search ? u.search : ''));
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ t: 'bt3_leave', why }, '*');
+      }
+    } catch (e) {}
     location.replace(u.toString());
   }
 
@@ -622,7 +727,7 @@
       ];
       this.cur = 2;
       this.say('Looking for an opponent...');
-      const ws = this.ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/net/queue?name=${encodeURIComponent(myName())}&cid=${cid}`);
+      const ws = this.ws = new WebSocket(queueUrl());
       const keep = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 15000);
       ws.onmessage = (e) => {
         const m = JSON.parse(e.data);
@@ -670,18 +775,27 @@
     hostWait(code) {
       this.peer = '';
       const ws = this.ws = new WebSocket(wsUrl(code, 'host', 'lobby'));
+      this.myRole = 'host';
       ws.onmessage = (e) => {
         const m = JSON.parse(e.data);
         if (m.t === 'taken') { this.ws = null; this.code = newCode(); this.host(true); return; }
-        if (m.t === 'peer') {
+        if (m.t === 'peer' || m.t === 'peers' || m.t === 'peer_joined') {
           this.peer = m.name || 'Player';
           se(1);
+          const isTag = this.battle === 4 || Q.get('mode') === 'tag';
           this.say(`${this.peer} is here! Get ready...`);
           const rules = rulesWord(this.battle, this.time);
-          setTimeout(() => {
-            try { ws.send(JSON.stringify({ t: 'go', rules, name: myName() })); } catch (e) {}
-            go('host', code, rules, this.peer);
-          }, 1800);
+          if (this.goTimer) clearTimeout(this.goTimer);
+          const waitMs = isTag ? 3000 : 1800;
+          this.goTimer = setTimeout(() => {
+            try { ws.send(JSON.stringify({ t: 'go', rules, name: myName(), mode: isTag ? 'tag' : 'single', slots: isTag ? '4' : '2' })); } catch (e) {}
+          }, waitMs);
+        }
+        if (m.t === 'go') {
+          if (this.goTimer) { clearTimeout(this.goTimer); this.goTimer = null; }
+          const rules = rulesWord(this.battle, this.time);
+          const isTag = this.battle === 4 || Q.get('mode') === 'tag' || m.mode === 'tag';
+          go('host', code, m.rules || rules, this.peer, isTag ? 'tag' : 'single', isTag ? '4' : '2', m.humanPlayers);
         }
         if (m.t === 'left') { this.peer = ''; this.say('Waiting for your opponent...'); }
       };
@@ -696,13 +810,25 @@
       se(1);
       this.say(`Looking for room ${code}...`);
       const ws = this.ws = new WebSocket(wsUrl(code, 'join', 'lobby'));
+      this.myRole = 'join';
       ws.onmessage = (e) => {
         const m = JSON.parse(e.data);
-        if (m.t === 'nohost') { se(7); this.say(`There is no room ${code}.`); this.ws = null; }
-        else if (m.t === 'full') { se(7); this.say(`Room ${code} is full.`); this.ws = null; }
-        else if (m.t === 'peer') { this.peer = m.name || 'Player'; this.say('Room found! Get ready...'); }
-        else if (m.t === 'go') go('join', code, m.rules, m.name || this.peer);
-        else if (m.t === 'left') this.say('The host closed the room.');
+        if (m.t === 'assigned_role') {
+          this.myRole = m.role;
+        } else if (m.t === 'nohost') {
+          se(7); this.say(`There is no room ${code}.`); this.ws = null;
+        } else if (m.t === 'full') {
+          se(7); this.say(`Room ${code} is full.`); this.ws = null;
+        } else if (m.t === 'peer' || m.t === 'peers' || m.t === 'peer_joined') {
+          if (m.myRole) this.myRole = m.myRole;
+          this.peer = (typeof m.name === 'string' && m.name) || (m.peers && m.peers[0] && m.peers[0].name) || 'Player';
+          this.say('Room found! Get ready...');
+        } else if (m.t === 'go') {
+          const myRole = m.myRole || m.role || this.myRole || 'join';
+          go(myRole, code, m.rules, m.name || this.peer, m.mode, m.humanPlayers || m.maxPlayers, m.humanPlayers);
+        } else if (m.t === 'left') {
+          this.say('The host closed the room.');
+        }
       };
       ws.onclose = (e) => { if (this.ws === ws && e.code !== 1000 && !this.peer) this.say('Could not reach the room. Try again.'); };
     },
@@ -763,14 +889,19 @@
   const coarse = () => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
 
   // both in the room: this page loads itself into the session
-  function go(role, room, rules, vs) {
+  function go(role, room, rules, vs, mode, slots, humans) {
+    try { if (UI.ws) UI.ws.close(1000, 'navigating to session'); } catch (e) {}
     const u = new URL(location.href);
     u.searchParams.set('net', role);
     u.searchParams.set('room', room);
     if (role === 'host') u.searchParams.set('rules', rules); else u.searchParams.delete('rules');
     u.searchParams.set('vs', vs || '');
+    if (mode) u.searchParams.set('mode', mode);
+    if (slots) u.searchParams.set('slots', slots);
+    if (humans) u.searchParams.set('humans', humans);
     for (const k of ['netmsg', 'nomovie']) u.searchParams.delete(k);
-    setTimeout(() => location.replace(u.toString()), role === 'join' ? 150 : 50);
+    const delay = role === 'host' ? 80 : role === 'join' ? 180 : role === 'p3' ? 280 : 380;
+    setTimeout(() => location.replace(u.toString()), delay);
   }
 
   // ---------------------------------------------------------------------------------------------------------------

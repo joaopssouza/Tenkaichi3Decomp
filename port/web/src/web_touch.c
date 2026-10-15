@@ -5,19 +5,27 @@
 
 static unsigned sHeld, sLatch;
 static unsigned char sLx = 0x80, sLy = 0x80;
+static unsigned char sRx = 0x80, sRy = 0x80;
 
-EMSCRIPTEN_KEEPALIVE void Web_TouchSet(unsigned buttons, int lx, int ly) {
+EMSCRIPTEN_KEEPALIVE void Web_TouchSet(unsigned buttons, int lx, int ly, int rx, int ry) {
     sHeld = buttons;
     sLatch |= buttons;
     sLx = (unsigned char)lx;
     sLy = (unsigned char)ly;
+    sRx = (unsigned char)rx;
+    sRy = (unsigned char)ry;
+}
+
+EMSCRIPTEN_KEEPALIVE void Web_UiToggle(void) {
+    extern void Ui_Toggle(void);
+    Ui_Toggle();
 }
 
 /* the buttons (pad.h bits, 1 = pressed) and, when the stick is off centre, its position. While the menus run, the
    stick also presses the D-pad in its main direction past half way (the menus read only the D-pad; the game itself
    turns the stick into directions the same way, src/sys/pad.c). Not in a battle: there the D-pad is four buttons of
    its own (src/battle/btl_input.c), on the page's D-pad. */
-unsigned Web_TouchRead(unsigned char *lx, unsigned char *ly) {
+unsigned Web_TouchRead(unsigned char *lx, unsigned char *ly, unsigned char *rx, unsigned char *ry) {
     extern int gPortMenuMode; /* headless.c: 1 while the menus run */
     unsigned b = sHeld | sLatch;
     sLatch = 0;
@@ -33,5 +41,10 @@ unsigned Web_TouchRead(unsigned char *lx, unsigned char *ly) {
         *lx = sLx;
         *ly = sLy;
     }
+    if (sRx != 0x80 || sRy != 0x80) {
+        *rx = sRx;
+        *ry = sRy;
+    }
     return b;
 }
+

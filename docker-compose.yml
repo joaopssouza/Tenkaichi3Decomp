@@ -1,0 +1,73 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Node.js Matchmaking & WebRTC Signaling Server
+  # ---------------------------------------------------------------------------
+  signaling:
+    build:
+      context: .
+      dockerfile: Dockerfile.signaling
+    container_name: bt3-signaling
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - DB_PATH=/app/data/bt3_store.json
+    volumes:
+      - ./data:/app/data
+      - ./port/build/web/disc:/app/port/build/web/disc:ro
+      - ./Tenkaichi3Decomp/textures/SLUS-21678:/app/Tenkaichi3Decomp/textures/SLUS-21678:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - bt3-net
+      - proxy_network
+
+  # ---------------------------------------------------------------------------
+  # Nginx Web Client & Reverse Proxy
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: bt3-game-client
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4500}:80"
+    volumes:
+      # Mount built Wasm artifacts when available
+      - ${BUILD_DIR:-./port/build/web}:/usr/share/nginx/html/build:ro
+      # Mount disc chunks
+      - ./port/build/web/disc:/usr/share/nginx/html/disc:ro
+      # Mount textures on-demand
+      - ./Tenkaichi3Decomp/textures/SLUS-21678:/usr/share/nginx/html/textures/SLUS-21678:ro
+      # Mount iso directory containing disc.iso for HTTP Range Requests support
+      - ${ISO_DIR:-./iso}:/usr/share/nginx/html/iso:ro
+    depends_on:
+      - signaling
+    networks:
+      - bt3-net
+      - proxy_network
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel Daemon (Optional: docker compose --profile tunnel up)
+  # ---------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: bt3-cloudflared
+    restart: unless-stopped
+    profiles:
+      - tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - web
+    networks:
+      - bt3-net
+
+networks:
+  bt3-net:
+    driver: bridge
+  proxy_network:
+    external: true

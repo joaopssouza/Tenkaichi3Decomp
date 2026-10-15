@@ -78,8 +78,10 @@
     #pad { --u: var(--vh, 1vh); --el: calc(var(--sl) * .6); --er: calc(var(--sr) * .6); --fl: var(--sl); --fr: var(--sr); }
     /* (--el/--er: the corners, which reach a little into the safe area; --fl/--fr: the middle of the edge, the whole
        safe area, where the Dynamic Island is) */
-    #pad .stick { width: calc(var(--u) * 32); height: calc(var(--u) * 32);
+    #pad .stick.stick-l { width: calc(var(--u) * 32); height: calc(var(--u) * 32);
       left: calc(var(--el) + var(--u) * 2); bottom: calc(var(--sb) + var(--u) * 2); }
+    #pad .stick.stick-r { width: calc(var(--u) * 26); height: calc(var(--u) * 26);
+      right: calc(var(--er) + var(--u) * 37); bottom: calc(var(--sb) + var(--u) * 2); }
     #pad .sh { width: calc(var(--u) * 15); height: calc(var(--u) * 10); }
     #pad .l2 { left: calc(var(--fl) + var(--u) * 2); top: calc(var(--st) + var(--u) * 3); }
     #pad .l1 { left: calc(var(--fl) + var(--u) * 2); top: calc(var(--st) + var(--u) * 15); }
@@ -106,12 +108,15 @@
     #pad .r3 { right: calc(var(--fr) + var(--u) * 18); top: calc(var(--st) + var(--u) * 16.5); }
     #pad .hide { right: calc(var(--fr) + var(--u) * 2); top: calc(var(--st) + var(--u) * 29); width: calc(var(--u) * 17); height: calc(var(--u) * 7);
       border-radius: calc(var(--u) * 3); opacity: .85; }
+    #pad .settings { right: calc(var(--fr) + var(--u) * 2); top: calc(var(--st) + var(--u) * 39); width: calc(var(--u) * 17); height: calc(var(--u) * 7);
+      border-radius: calc(var(--u) * 3); opacity: .85; cursor: pointer; }
   }
   /* portrait: the picture on top, the controls under it; sizes from the screen's width */
   @media (orientation: portrait) {
     body.touch canvas#canvas { top: var(--st); height: min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52); }
     #pad { --u: calc(var(--vw, 1vw) * .62); }
-    #pad .stick { left: calc(var(--u) * 6); bottom: calc(var(--sb) + var(--u) * 22); width: calc(var(--u) * 52); height: calc(var(--u) * 52); }
+    #pad .stick.stick-l { left: calc(var(--u) * 5); bottom: calc(var(--sb) + var(--u) * 22); width: calc(var(--u) * 44); height: calc(var(--u) * 44); }
+    #pad .stick.stick-r { right: calc(var(--u) * 52); bottom: calc(var(--sb) + var(--u) * 4); width: calc(var(--u) * 36); height: calc(var(--u) * 36); }
     #pad .face { width: calc(var(--u) * 20); height: calc(var(--u) * 20); }
     #pad .face.tri { right: calc(var(--u) * 26); bottom: calc(var(--sb) + var(--u) * 62); }
     #pad .face.cir { right: calc(var(--u) * 5); bottom: calc(var(--sb) + var(--u) * 41); }
@@ -133,12 +138,18 @@
     #pad .start { left: calc(50% + var(--u) * 2); bottom: calc(var(--sb) + var(--u) * 4); }
     #pad .l3 { left: calc(50% - var(--u) * 23); top: calc(var(--st) + min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52) + var(--u) * 22); }
     #pad .r3 { left: calc(50% + var(--u) * 2); top: calc(var(--st) + min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52) + var(--u) * 22); }
-    #pad .hide { left: calc(50% - var(--u) * 10); top: calc(var(--st) + min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52) + var(--u) * 36);
+    #pad .hide { left: calc(50% - var(--u) * 21); top: calc(var(--st) + min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52) + var(--u) * 36);
       width: calc(var(--u) * 20); height: calc(var(--u) * 10); border-radius: calc(var(--u) * 3); font-size: calc(var(--u) * 4.5); opacity: .6; }
+    #pad .settings { left: calc(50% + var(--u) * 1); top: calc(var(--st) + min(var(--vw, 1vw) * 75, var(--vh, 1vh) * 52) + var(--u) * 36);
+      width: calc(var(--u) * 20); height: calc(var(--u) * 10); border-radius: calc(var(--u) * 3); font-size: calc(var(--u) * 4.5); opacity: .7; cursor: pointer; }
   }
   #show { position: fixed; z-index: 3; right: calc(var(--sr) + 10px); bottom: calc(var(--sb) + 10px); display: none;
     padding: 8px 12px; border-radius: 8px; background: rgba(30,32,40,.6); color: #fff; border: 1px solid rgba(255,255,255,.3);
     font: 600 13px system-ui, -apple-system, sans-serif; }
+  #show-settings { position: fixed; z-index: 4; right: calc(var(--sr) + 10px); top: calc(var(--st) + 10px); display: none;
+    padding: 7px 11px; border-radius: 8px; background: rgba(30,32,40,.6); color: #fff; border: 1px solid rgba(255,255,255,.3);
+    font: 600 13px system-ui, -apple-system, sans-serif; cursor: pointer; }
+  body.coarse.started #show-settings { display: block; }
   body.coarse.started:not(.touch) #show { display: block; transition: opacity .5s; }
   body.coarse.started:not(.touch) #show.away { opacity: 0; pointer-events: none; }
   #hud { position: fixed; z-index: 4; left: calc(var(--sl) + 6px); top: calc(var(--st) + 4px); display: none;
@@ -151,6 +162,30 @@
   #net.on { display: block; }
   #err { position: fixed; z-index: 6; left: 16px; right: 16px; bottom: calc(var(--sb) + 16px); margin: 0; padding: 12px;
     background: #2a1416; color: #ff7b72; border-radius: 8px; white-space: pre-wrap; display: none; font: 13px ui-monospace, monospace; }
+
+  /* floating close settings button when overlay is open */
+  #close-settings { position: fixed; z-index: 100; right: calc(var(--sr) + 12px); top: calc(var(--st) + 12px);
+    display: none; align-items: center; justify-content: center; padding: 7px 15px; border-radius: 20px;
+    background: rgba(220, 48, 48, 0.92); color: #fff; border: 1.5px solid rgba(255,255,255,.45);
+    font: 700 13px system-ui, -apple-system, sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.65);
+    -webkit-tap-highlight-color: transparent; }
+  body.overlay-open #close-settings { display: flex !important; }
+  body.overlay-open #pad { display: none !important; }
+
+  /* mini loading bar in bottom center */
+  #loading-bar-wrap { position: fixed; bottom: calc(var(--sb) + 16px); left: 50%; transform: translateX(-50%);
+    z-index: 70; display: none; flex-direction: column; align-items: center; gap: 4px; pointer-events: none;
+    background: rgba(14, 16, 22, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    padding: 6px 16px 7px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7); min-width: 170px; text-align: center;
+    transition: opacity 0.25s ease, transform 0.25s ease; }
+  #loading-bar-wrap.on { display: flex; }
+  #loading-bar-track { width: 100%; height: 5px; background: rgba(255, 255, 255, 0.16); border-radius: 3px; overflow: hidden; }
+  #loading-bar-progress { width: 0%; height: 100%; background: linear-gradient(90deg, #f2a33a, #ffc83b); border-radius: 3px;
+    transition: width 0.15s ease-out; }
+  #loading-bar-wrap.indeterminate #loading-bar-progress { width: 45%; animation: loading-slide 1.2s infinite ease-in-out; }
+  @keyframes loading-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+  #loading-bar-text { font: 600 11px system-ui, -apple-system, sans-serif; color: #f0f0f2; letter-spacing: 0.02em; }
 </style>
 <link rel="stylesheet" href="net.css">
 <script src="net.js"></script>
@@ -158,7 +193,8 @@
 <body>
 <div id="stage"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas></div>
 <div id="pad" aria-hidden="true">
-  <div class="stick" data-stick><div class="knob"></div></div>
+  <div class="stick stick-l" data-stick="l"><div class="knob"></div></div>
+  <div class="stick stick-r" data-stick="r"><div class="knob"></div></div>
   <div class="b dp up" data-btn="up"><svg viewBox="0 0 20 20"><path d="M10 5 15 13H5Z" fill="#fff" opacity=".8"/></svg></div>
   <div class="b dp down" data-btn="down"><svg viewBox="0 0 20 20"><path d="M10 15 15 7H5Z" fill="#fff" opacity=".8"/></svg></div>
   <div class="b dp left" data-btn="left"><svg viewBox="0 0 20 20"><path d="M5 10 13 5V15Z" fill="#fff" opacity=".8"/></svg></div>
@@ -171,9 +207,18 @@
   <div class="b sh r2" data-btn="r2">R2</div><div class="b sh r1" data-btn="r1">R1</div>
   <div class="b sm select" data-btn="select">SELECT</div><div class="b sm start" data-btn="start">START</div>
   <div class="b sm l3" data-btn="l3">L3</div><div class="b sm r3" data-btn="r3">R3</div>
+  <div class="b sm settings" data-btn-settings title="Settings (F1)">⚙ F1</div>
   <div class="b hide" data-hide title="Hide the touch controls"><svg viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></div>
 </div>
 <button id="show">Touch controls</button>
+<button id="show-settings" title="Settings (F1)">⚙</button>
+<button id="close-settings" title="Fechar Configurações">✕ Fechar</button>
+
+<div id="loading-bar-wrap">
+  <div id="loading-bar-track"><div id="loading-bar-progress"></div></div>
+  <span id="loading-bar-text">Carregando...</span>
+</div>
+
 <div id="hud"></div>
 <div id="net"></div>
 <pre id="err"></pre>
@@ -216,7 +261,7 @@
     // the port's switches; set before the program starts up (its start-up code reads the environment, which is
     // fixed at the first read)
     preRun: [() => Object.assign(ENV, { BT3_GS: 'gpu', BT3_GPU_API: 'gl', BT3_UNLOCK_ALL: '1', BT3_SAVES: '/persist/saves',
-                                        BT3_SETTINGS: '/persist/settings.ini' },
+                                        BT3_SETTINGS: '/persist/settings.ini', BT3_TEXTURES: '/textures' },
                                       // online play: a page loaded into a match (net.js)
                                       window.BT3Net ? BT3Net.sessionEnv() : {},
                                       // testing: ?env=NAME=value,NAME=value (the port's diagnostic switches)
@@ -264,11 +309,17 @@
   const BITS = { select: 0x1, l3: 0x2, r3: 0x4, start: 0x8, up: 0x10, right: 0x20, down: 0x40, left: 0x80, l2: 0x100,
                  r2: 0x200, l1: 0x400, r1: 0x800, tri: 0x1000, cir: 0x2000, cro: 0x4000, squ: 0x8000 };
   const Touch = window.BT3Touch = {
-    ptrs: new Map(), // pointer id -> {stick: true} or {btn: element}
-    lx: 128, ly: 128, bits: 0, sent: '',
-    els: [...document.querySelectorAll('#pad [data-btn]')], stick: document.querySelector('#pad [data-stick]'),
+    ptrs: new Map(), // pointer id -> {stick: 'l'|'r'} or {btn: element}
+    lx: 128, ly: 128, rx: 128, ry: 128, bits: 0, sent: '',
+    els: [...document.querySelectorAll('#pad [data-btn]')],
+    stickL: document.querySelector('#pad [data-stick="l"]'),
+    stickR: document.querySelector('#pad [data-stick="r"]'),
     rects: null,
-    layout() { this.rects = this.els.map((el) => ({ el, r: el.getBoundingClientRect() })); this.sr = this.stick.getBoundingClientRect(); },
+    layout() {
+      this.rects = this.els.map((el) => ({ el, r: el.getBoundingClientRect() }));
+      if (this.stickL) this.sl = this.stickL.getBoundingClientRect();
+      if (this.stickR) this.sr = this.stickR.getBoundingClientRect();
+    },
     btnAt(x, y) { // the nearest button whose circle (a little larger than drawn) holds the point
       let best = null, bd = 1;
       for (const { el, r } of this.rects) {
@@ -277,17 +328,28 @@
       }
       return best;
     },
-    stickTo(x, y) {
-      const r = this.sr, rad = r.width / 2, cx = r.left + rad, cy = r.top + rad;
+    stickTo(which, x, y) {
+      const isR = which === 'r';
+      const el = isR ? this.stickR : this.stickL;
+      const r = isR ? this.sr : this.sl;
+      if (!el || !r) return;
+      const rad = r.width / 2, cx = r.left + rad, cy = r.top + rad;
       let dx = (x - cx) / rad, dy = (y - cy) / rad;
       const m = Math.hypot(dx, dy);
       if (m > 1) { dx /= m; dy /= m; }
-      this.stick.firstChild.style.transform = `translate(${dx * rad * 0.62}px, ${dy * rad * 0.62}px)`;
+      if (el.firstChild) el.firstChild.style.transform = `translate(${dx * rad * 0.62}px, ${dy * rad * 0.62}px)`;
       // a dead zone in the middle, then the full range: the direction, scaled by how far past the dead zone
       const dead = 0.16, len = Math.min(m, 1), amount = len < dead ? 0 : (len - dead) / (1 - dead);
       const ux = len > 0 ? dx / len : 0, uy = len > 0 ? dy / len : 0;
-      this.lx = Math.max(0, Math.min(255, Math.round(128 + ux * amount * 127.5)));
-      this.ly = Math.max(0, Math.min(255, Math.round(128 + uy * amount * 127.5)));
+      const valX = Math.max(0, Math.min(255, Math.round(128 + ux * amount * 127.5)));
+      const valY = Math.max(0, Math.min(255, Math.round(128 + uy * amount * 127.5)));
+      if (isR) {
+        this.rx = valX;
+        this.ry = valY;
+      } else {
+        this.lx = valX;
+        this.ly = valY;
+      }
     },
     onButton(x, y) { // the button drawn under the point (its box and a few pixels around it)
       for (const { el, r } of this.rects) {
@@ -295,27 +357,44 @@
       }
       return null;
     },
-    inStick(x, y) { const r = this.sr; return Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) < r.width / 2 * 1.5; },
+    inStick(which, x, y) {
+      const r = which === 'r' ? this.sr : this.sl;
+      if (!r) return false;
+      return Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) < r.width / 2 * 1.5;
+    },
     update() {
-      let bits = 0, stick = false;
-      for (const p of this.ptrs.values()) { if (p.btn) bits |= BITS[p.btn.dataset.btn] || 0; if (p.stick) stick = true; }
-      if (!stick) { this.lx = this.ly = 128; this.stick.firstChild.style.transform = ''; }
+      let bits = 0, stickL = false, stickR = false;
+      for (const p of this.ptrs.values()) {
+        if (p.btn) bits |= BITS[p.btn.dataset.btn] || 0;
+        if (p.stick === 'l') stickL = true;
+        if (p.stick === 'r') stickR = true;
+      }
+      if (!stickL) { this.lx = this.ly = 128; if (this.stickL && this.stickL.firstChild) this.stickL.firstChild.style.transform = ''; }
+      if (!stickR) { this.rx = this.ry = 128; if (this.stickR && this.stickR.firstChild) this.stickR.firstChild.style.transform = ''; }
       for (const el of this.els) el.classList.toggle('on', !!(bits & BITS[el.dataset.btn]));
       this.bits = bits;
       this.latch = (this.latch || 0) | bits; // (a tap shorter than a frame, for the page's own screens: net.js)
-      const key = bits + ',' + this.lx + ',' + this.ly;
-      if (key !== this.sent && Module._Web_TouchSet) { Module._Web_TouchSet(bits, this.lx, this.ly); this.sent = key; }
+      const key = bits + ',' + this.lx + ',' + this.ly + ',' + this.rx + ',' + this.ry;
+      if (key !== this.sent && Module._Web_TouchSet) {
+        Module._Web_TouchSet(bits, this.lx, this.ly, this.rx, this.ry);
+        this.sent = key;
+      }
     },
     down(e) {
+      if (document.body.classList.contains('overlay-open')) return;
       if (!this.rects) this.layout();
       if (e.target.closest('[data-hide]')) { setTouch(false); return; }
-      // a finger on a drawn button is that button (the D-pad sits right above the stick); the stick takes what is
-      // left of its wider touch area
+      if (e.target.closest('[data-btn-settings]')) {
+        if (Module._Web_UiToggle) Module._Web_UiToggle();
+        return;
+      }
       const onBtn = this.onButton(e.clientX, e.clientY);
       if (onBtn) {
         this.ptrs.set(e.pointerId, { btn: onBtn });
-      } else if (this.inStick(e.clientX, e.clientY) && ![...this.ptrs.values()].some((p) => p.stick)) {
-        this.ptrs.set(e.pointerId, { stick: true }); this.stickTo(e.clientX, e.clientY);
+      } else if (this.inStick('l', e.clientX, e.clientY) && ![...this.ptrs.values()].some((p) => p.stick === 'l')) {
+        this.ptrs.set(e.pointerId, { stick: 'l' }); this.stickTo('l', e.clientX, e.clientY);
+      } else if (this.inStick('r', e.clientX, e.clientY) && ![...this.ptrs.values()].some((p) => p.stick === 'r')) {
+        this.ptrs.set(e.pointerId, { stick: 'r' }); this.stickTo('r', e.clientX, e.clientY);
       } else {
         this.ptrs.set(e.pointerId, { btn: this.btnAt(e.clientX, e.clientY) });
       }
@@ -324,7 +403,8 @@
     move(e) {
       const p = this.ptrs.get(e.pointerId);
       if (!p) return;
-      if (p.stick) this.stickTo(e.clientX, e.clientY); else p.btn = this.btnAt(e.clientX, e.clientY); // slide between buttons
+      if (p.stick) this.stickTo(p.stick, e.clientX, e.clientY);
+      else p.btn = this.btnAt(e.clientX, e.clientY); // slide between buttons
       this.update();
     },
     up(e) { if (this.ptrs.delete(e.pointerId)) this.update(); },
@@ -341,8 +421,8 @@
   addEventListener('pointerdown', () => { // (anywhere: the touch controls lie over the picture)
     try {
       if (Module._Web_InLogos && Module._Web_InLogos()) {
-        Module._Web_TouchSet(0x8, 128, 128); // START (the latch keeps it for the game's next read)
-        setTimeout(() => Module._Web_TouchSet(Touch.bits, Touch.lx, Touch.ly), 120);
+        Module._Web_TouchSet(0x8, 128, 128, 128, 128); // START (the latch keeps it for the game's next read)
+        setTimeout(() => Module._Web_TouchSet(Touch.bits, Touch.lx, Touch.ly, Touch.rx, Touch.ry), 120);
       }
     } catch (e) {}
   }, true);
@@ -365,6 +445,15 @@
     try { localStorage.setItem('bt3.touch', on ? '1' : '0'); } catch (e) {}
   }
   $('show').addEventListener('click', () => setTouch(true));
+  $('show-settings').addEventListener('click', () => { if (Module._Web_UiToggle) Module._Web_UiToggle(); });
+  $('close-settings').addEventListener('click', () => { if (Module._Web_UiToggle) Module._Web_UiToggle(); });
+  window.onOverlayToggle = (open) => {
+    document.body.classList.toggle('overlay-open', !!open);
+    if (open) {
+      Touch.ptrs.clear();
+      Touch.update();
+    }
+  };
   // controls hidden: the button that brings them back steps out of the picture after a few seconds; a tap shows it
   let showTimer = 0;
   const showAgain = () => { $('show').classList.remove('away'); clearTimeout(showTimer); showTimer = setTimeout(() => $('show').classList.add('away'), 3500); };
@@ -403,15 +492,37 @@
   // A disc image as {size, readAt}: a File the user chose (read in place), or an address that answers HTTP range
   // requests (the test server's /disc.iso, port/web/serve.mjs).
   const fileDisc = (f) => ({ size: f.size, readAt: async (o, n) => new Uint8Array(await f.slice(o, o + n).arrayBuffer()) });
+  const loadingWrap = $('loading-bar-wrap'), loadingBar = $('loading-bar-progress'), loadingText = $('loading-bar-text');
+  function showLoading(text, pct) {
+    if (!loadingWrap) return;
+    loadingWrap.classList.add('on');
+    if (typeof pct === 'number') {
+      loadingWrap.classList.remove('indeterminate');
+      loadingBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    } else {
+      loadingWrap.classList.add('indeterminate');
+      loadingBar.style.width = '45%';
+    }
+    if (text) loadingText.textContent = text;
+  }
+  function hideLoading() {
+    if (loadingWrap) loadingWrap.classList.remove('on');
+  }
+
   // Reads of the network kinds: answers checked (status, length), a failed one tried again (a phone on mobile data
   // drops requests now and then), and while any read takes longer than a moment, the badge in the corner.
   let netBusy = 0, netTimer = 0, netBytes = 0;
-  const netShow = () => { $('net').textContent = `Loading ${(netBytes / 1048576).toFixed(1)} MB`; $('net').classList.add('on'); };
+  const netShow = () => {
+    const mb = (netBytes / 1048576).toFixed(1);
+    $('net').textContent = `Loading ${mb} MB`;
+    $('net').classList.add('on');
+    showLoading(`Carregando dados (${mb} MB)...`);
+  };
   const netRead = async (what, quiet) => {
     if (quiet) { // (a read ahead of the game: retried the same, but not shown)
       for (let i = 0; ; i++) { try { return await what(); } catch (e) { if (i >= 3) throw e; await new Promise((ok) => setTimeout(ok, 500 * 2 ** i)); } }
     }
-    if (netBusy++ === 0) netTimer = setTimeout(netShow, 700);
+    if (netBusy++ === 0) netTimer = setTimeout(netShow, 400);
     try {
       for (let i = 0; ; i++) {
         try { return await what(); } catch (e) {
@@ -420,7 +531,13 @@
           await new Promise((ok) => setTimeout(ok, 300 * 2 ** i));
         }
       }
-    } finally { if (--netBusy === 0) { clearTimeout(netTimer); $('net').classList.remove('on'); } }
+    } finally {
+      if (--netBusy === 0) {
+        clearTimeout(netTimer);
+        $('net').classList.remove('on');
+        hideLoading();
+      }
+    }
   };
   const getBytes = async (url, range, want) => {
     const r = await fetch(url, range ? { headers: { Range: range } } : {});
@@ -439,34 +556,35 @@
     return { size, readAt: async (o, n) => n === 0 ? new Uint8Array(0)
       : netRead(() => getBytes(url, `bytes=${o}-${o + n - 1}`, n)) };
   };
+  const VER = '20261014_ptbr_v3';
+
   // the hosted build (cloudflare/): the image in pieces of equal size (<base>/00000.bin, ...; <base>/index.json gives
   // {size, piece}), fetched whole, several at a time, kept by the browser's own cache (the answers say immutable) and
   // the last few here, so the many small files that share a piece cost one download
   const pieceDisc = async (base) => {
-    const r = await fetch(base + '/index.json');
+    const r = await fetch(base + '/index.json?v=' + VER);
     if (!r.ok) throw new Error('no ' + base + '/index.json');
     const { size, piece } = await r.json();
-    const kept = new Map(), keep = 40; // piece number -> Promise<Uint8Array> (oldest first)
+    const kept = new Map(), keep = 60; // piece number -> Promise<Uint8Array> (oldest first)
     // Reading ahead: while the game reads the disc in order (a stage, a fighter: file after file, next to each other
     // on the disc), the next pieces are fetched before it asks for them, so it no longer waits a round trip to the
     // server per piece (the phone's long loading screens). Scattered reads (voices, sounds) read nothing ahead.
     const AHEAD = 4;
     let lastPiece = -10, run = 0;
-    // the pieces the start-up reads (the USA disc: system files, the boot logos, the title), asked for all at once
-    // while the program is still loading, instead of one after another as the game gets to them
-    const BOOT = [0, 3, 1398, 5, 4, 8, 473, 480];
+    // the pieces the start-up and main menu read, asked for all at once
+    const BOOT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 473, 474, 475, 476, 477, 478, 479, 480];
     const count = Math.ceil(size / piece);
     const get = (i, quiet) => {
       let p = kept.get(i);
       if (p) { kept.delete(i); kept.set(i, p); return p; }
       const want = Math.min(piece, size - i * piece);
-      p = netRead(() => getBytes(`${base}/${String(i).padStart(5, '0')}.bin`, null, want), quiet);
+      p = netRead(() => getBytes(`${base}/${String(i).padStart(5, '0')}.bin?v=${VER}`, null, want), quiet);
       p.catch(() => kept.delete(i));
       kept.set(i, p);
       while (kept.size > keep) kept.delete(kept.keys().next().value);
       return p;
     };
-    if (size === 3020816384) setTimeout(() => BOOT.forEach((i) => get(i).catch(() => {})), 0);
+    if (size === 3000809472 || size === 3020816384) setTimeout(() => BOOT.forEach((i) => get(i).catch(() => {})), 0);
     return { size, readAt: async (o, n) => {
       const out = new Uint8Array(n);
       if (n === 0) return out;
@@ -494,6 +612,47 @@
       Module.webDisc = disc;
       const n = await Module.webDiscIndex();
       say(`Disc recognised (${n.toLocaleString()} archive entries). Starting…`);
+
+      // Pre-load the main menu files into memory
+      showLoading('Carregando Menu Principal...', 5);
+      const menuPreloadList = [
+        'disc/SLUS_216.78',
+        'disc/BIN/DBZP.BIN',
+        'disc/DATA/PZS3US.DIR',
+        'disc/DATA/PZS3US0.ALG',
+        'disc/DATA/PZS3US1.ALG',
+        'disc/DATA/PZS3US2.ALG',
+        'pzs3us0/00000.bin',
+        'pzs3us1/00000.bin',
+        'pzs3us1/00001.bin',
+        'pzs3us1/00002.bin',
+        'pzs3us1/00003.bin',
+        'pzs3us1/00004.bin',
+        'pzs3us1/00005.bin',
+        'pzs3us1/00006.bin',
+        'pzs3us1/00007.bin',
+        'pzs3us1/00008.bin',
+        'pzs3us1/00009.bin',
+        'pzs3us1/00010.bin',
+        'pzs3us1/00011.bin',
+        'pzs3us1/00012.bin',
+        'pzs3us1/00013.bin',
+        'pzs3us1/00014.bin',
+        'pzs3us1/00015.bin'
+      ];
+      let pCount = 0;
+      for (const item of menuPreloadList) {
+        if (Module.webIndex && Module.webIndex[item]) {
+          try {
+            await Module.webDiscEnsure('gamedata/' + item);
+          } catch (e) {
+            Module.keep && Module.keep('preload error ' + item + ': ' + e);
+          }
+        }
+        pCount++;
+        showLoading(`Carregando Menu Principal... ${Math.round((pCount / menuPreloadList.length) * 100)}%`, Math.round((pCount / menuPreloadList.length) * 100));
+      }
+      hideLoading();
       // saves and settings: kept in this browser (IndexedDB), written back every few seconds and when the page is left
       // ask the browser to keep this site's storage (Safari otherwise may clear it after a week without a visit;
       // a Home Screen app keeps it)
@@ -502,6 +661,41 @@
       FS.mount(IDBFS, {}, '/persist');
       await new Promise((ok) => FS.syncfs(true, () => ok()));
       try { FS.mkdir('/persist/saves'); } catch (e) {}
+      try { FS.mkdir('/persist/saves/card1'); } catch (e) {}
+      try { FS.mkdir('/persist/saves/card1/BASLUS-21678DBZT3'); } catch (e) {}
+      const saveFile = '/persist/saves/card1/BASLUS-21678DBZT3/BASLUS-21678DBZT3';
+      try {
+        if (!FS.analyzePath(saveFile).exists) {
+          const r = await fetch('/saves/card1/BASLUS-21678DBZT3/BASLUS-21678DBZT3');
+          if (r.ok) {
+            FS.writeFile(saveFile, new Uint8Array(await r.arrayBuffer()));
+            const [rico, rsys] = await Promise.all([
+              fetch('/saves/card1/BASLUS-21678DBZT3/dbzsm.ico'),
+              fetch('/saves/card1/BASLUS-21678DBZT3/icon.sys')
+            ]);
+            if (rico.ok) FS.writeFile('/persist/saves/card1/BASLUS-21678DBZT3/dbzsm.ico', new Uint8Array(await rico.arrayBuffer()));
+            if (rsys.ok) FS.writeFile('/persist/saves/card1/BASLUS-21678DBZT3/icon.sys', new Uint8Array(await rsys.arrayBuffer()));
+            await new Promise((ok) => FS.syncfs(false, () => ok()));
+            Module.keep('default 100% save installed to /persist/saves/card1');
+          }
+        }
+      } catch (err) { Module.keep('save install: ' + err); }
+      try {
+        const tr = await fetch('/textures_index.json');
+        if (tr.ok) {
+          const list = await tr.json();
+          FS.mkdirTree('/textures/SLUS-21678');
+          for (const rel of list) {
+            const p = '/textures/SLUS-21678/' + rel;
+            const dir = p.slice(0, p.lastIndexOf('/'));
+            FS.mkdirTree(dir);
+            FS.writeFile(p, new Uint8Array(0));
+          }
+          try { FS.symlink('/textures', 'textures'); } catch (e) {}
+          try { FS.symlink('/textures', '/home/web_user/textures'); } catch (e) {}
+          Module.keep(`Indexed ${list.length} textures for on-demand HD replacement`);
+        }
+      } catch (err) { Module.keep('texture index: ' + err); }
       const save = () => FS.syncfs(false, () => {});
       setInterval(save, 5000);
       addEventListener('pagehide', save);
@@ -531,7 +725,7 @@
   // the server's own disc image (port/web/serve.mjs /disc.iso): straight into the game, no start screen. Sound
   // starts at the first tap in the game (the resume listeners above). ?pick=1 shows the start screen anyway.
   // Without a disc on the server (or with ?pick=1) the start screen asks for the player's own disc image.
-  const served = Q.get('disc') || '/disc.iso';
+  const served = window.DISC_URL || (window.Module && window.Module.discUrl) || Q.get('disc') || '/disc.iso';
   $('pickLabel').hidden = true;
   $('start').classList.add('auto');
   say('Loading…');
@@ -554,10 +748,16 @@
   // the program itself
   if (typeof WebAssembly !== 'object') say('This browser cannot run WebAssembly.', true);
   else {
+    Module.locateFile = (path, prefix) => (prefix || '') + path + '?v=' + VER;
     const s = document.createElement('script');
-    s.src = BUILD + '.js';
+    s.src = BUILD + '.js?v=' + VER;
     s.onerror = () => say('Could not load ' + BUILD + '.js', true);
     document.body.appendChild(s);
+  }
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js?v=' + VER).catch(() => {});
+    });
   }
 </script>
 </body>

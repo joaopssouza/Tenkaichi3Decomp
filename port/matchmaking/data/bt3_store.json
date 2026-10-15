@@ -1,0 +1,48 @@
+{
+  "users": {
+    "usr_28cfd044ff4ed8f5": {
+      "id": "usr_28cfd044ff4ed8f5",
+      "tagname": "GuerreiroZ_6320",
+      "displayName": "Guerreiro Z",
+      "country": "BR",
+      "salt": "eb75a440dcee402746828ed11231c16a",
+      "passHash": "",
+      "elo": 1000,
+      "wins": 0,
+      "losses": 0,
+      "streak": 0,
+      "createdAt": 1792008441014,
+      "lastSeenAt": 1792008441014
+    },
+    "usr_58db56bdefeb38d7": {
+      "id": "usr_58db56bdefeb38d7",
+      "tagname": "GuerreiroZ_3773",
+      "displayName": "Guerreiro Z",
+      "country": "BR",
+      "salt": "9c62d5b651bd801eee43019068c01644",
+      "passHash": "",
+      "elo": 1000,
+      "wins": 0,
+      "losses": 0,
+      "streak": 0,
+      "createdAt": 1792011703011,
+      "lastSeenAt": 1792011703011
+    }
+  },
+  "byTagname": {
+    "guerreiroz_6320": "usr_28cfd044ff4ed8f5",
+    "guerreiroz_3773": "usr_58db56bdefeb38d7"
+  },
+  "sessions": {
+    "tok_9dc8403b7f1253551ab1286ae9dc7a127ca7b21e5e5540ae": {
+      "userId": "usr_28cfd044ff4ed8f5",
+      "expiresAt": 1794600441015
+    },
+    "tok_de919c3cfff3899ee2d65478922e7ac85be658cb4b00b340": {
+      "userId": "usr_58db56bdefeb38d7",
+      "expiresAt": 1794603703011
+    }
+  },
+  "friends": {},
+  "matches": []
+}
