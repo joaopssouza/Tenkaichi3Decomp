@@ -847,8 +847,7 @@ void Port_NetBeginTick(unsigned tick) {
         return;
     }
     sTick = tick;
-    extern int Battle_IsTagTeam(void);
-    if (sRollMax > 0 && sNumPlayers <= 2 && !Battle_IsTagTeam() && (sRules & 15) != 3) {
+    if (sRollMax > 0 && sNumPlayers <= 2 && (sRules & 15) != 3) {
         roll_tick(tick);
         return;
     }

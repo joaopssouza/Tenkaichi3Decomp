@@ -2,13 +2,6 @@
 #include "battle/btl_char_ctl.h"
 #include "sys/mathf.h"
 
-typedef struct StgGroundHit {
-    f32 x, y, z;
-    u8 unkC[0x24];
-} StgGroundHit;
-
-extern s32 BtlStage_ProbeGround(s32 zone, Vec4 *pos, StgGroundHit *out);
-
 /*
  * Pose <-> object, placement, holds and per-frame snapshots: 0x1D70E8..0x1D8330.
  *
@@ -193,26 +186,7 @@ void BtlChar_PlaceAtStart(BtlCtlChr *chr) {
     Vec4 pos;
     Vec4 rot;
 
-    if (chr->player < 2) {
-        BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 0));
-    } else {
-        s32 side = chr->side;
-        s32 zone = BtlStage_GetStartPlace(side, &pos, &rot, 0);
-        f32 yaw = rot.y;
-        f32 fx = Mathf_Sin(yaw);
-        f32 fz = Mathf_Cos(yaw);
-        f32 rx = Mathf_Cos(yaw);
-        f32 rz = -Mathf_Sin(yaw);
-        f32 hand = -1.0f;
-        StgGroundHit hit;
-
-        pos.x += rx * (hand * 160.0f) - fx * 60.0f;
-        pos.z += rz * (hand * 160.0f) - fz * 60.0f;
-        pos.y = -700.0f;
-        zone = BtlStage_ProbeGround(-1, &pos, &hit);
-        pos.y = hit.y;
-        BtlChar_Place(chr, &pos, &rot, zone);
-    }
+    BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 0));
 }
 
 /* Flag 0xF3: places the fighter at its player's second start position. */
@@ -221,26 +195,7 @@ void BtlChar_PlaceRestart(BtlCtlChr *chr) {
     Vec4 rot;
 
     if (BtlChar_TestFlag(chr, 0xF3)) {
-        if (chr->player < 2) {
-            BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 1));
-        } else {
-            s32 side = chr->side;
-            s32 zone = BtlStage_GetStartPlace(side, &pos, &rot, 1);
-            f32 yaw = rot.y;
-            f32 fx = Mathf_Sin(yaw);
-            f32 fz = Mathf_Cos(yaw);
-            f32 rx = Mathf_Cos(yaw);
-            f32 rz = -Mathf_Sin(yaw);
-            f32 hand = -1.0f;
-            StgGroundHit hit;
-
-            pos.x += rx * (hand * 160.0f) - fx * 60.0f;
-            pos.z += rz * (hand * 160.0f) - fz * 60.0f;
-            pos.y = -700.0f;
-            zone = BtlStage_ProbeGround(-1, &pos, &hit);
-            pos.y = hit.y;
-            BtlChar_Place(chr, &pos, &rot, zone);
-        }
+        BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 1));
     }
 }
 

@@ -146,31 +146,12 @@ s32 Battle_Restart(void) {
     return 0;
 }
 
-s32 Battle_IsTagTeam(void) {
-#if defined(PORT) || defined(__EMSCRIPTEN__) || !defined(TARGET_PS2)
-    extern void Port_NetRules(int *type, int *dp, int *time);
-    int netType = 0, dp = 0, time = 0;
-    Port_NetRules(&netType, &dp, &time);
-    if (netType == 3) {
-        return 1;
-    }
-    if (getenv("BT3_NET_TAG") != NULL && atoi(getenv("BT3_NET_TAG")) != 0) {
-        return 1;
-    }
-    if (getenv("BT3_TAG_TEAM") != NULL && atoi(getenv("BT3_TAG_TEAM")) != 0) {
-        return 1;
-    }
-#endif
-    return 0;
-}
-
 /* Loads the battle data, creates every battle subsystem, then starts the first match. */
 s32 Battle_Init(void) {
-    s32 numFighters = Battle_IsTagTeam() ? 4 : 2;
     Battle_Load();
     StgFx_Init();
     StgModel_InitStage();
-    BtlChar_AllocAll(numFighters);
+    BtlChar_AllocAll(2);
     BtlAiMgr_Init();
     BtlCam_Init();
     StgNav_Init();

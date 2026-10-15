@@ -406,25 +406,20 @@ s32 BtlLoad_StepChara(BtlJob *job) {
             file8 = job->animChara * 10 + (BTL_FILE_CHARA + 8);
             file9 = job->unk1C * 10 + (BTL_FILE_CHARA + 9);
             voice = job->voiceChara + ((gSaveData->flags & SAVE_FLAG_VOICE) ? BTL_FILE_VOICE_ALT : BTL_FILE_VOICE);
-            BtlRes_Reload(Battle_GetFighterModelSlot(job->side), model, file8, file9);
-            if (job->side < 2) {
-                res->bank = File_Request3(voice, res->bank, res->bankSize);
-            }
+            BtlRes_Reload(BattleSide_GetModelSlot(job->side), model, file8, file9);
+            res->bank = File_Request3(voice, res->bank, res->bankSize);
             if (!BtlCtrl_IsSwitching(job->side)) {
                 BattleMember *next;
-                s32 teamSide = job->side & 1;
 
                 member = 0;
                 if (job->initial == 0) {
-                    member = BtlSide_GetActiveMember(teamSide);
+                    member = BtlSide_GetActiveMember(job->side);
                 }
-                next = BattleSide_GetMember(teamSide, member);
-                if (next != NULL) {
-                    next->buf[1] = File_Request3(job->chara * 2 + teamSide + BTL_FILE_CHARA_DATA, next->buf[1], BTL_MEMBER_BUF_SIZE);
-                }
+                next = BattleSide_GetMember(job->side, member);
+                next->buf[1] = File_Request3(job->chara * 2 + job->side + BTL_FILE_CHARA_DATA, next->buf[1], BTL_MEMBER_BUF_SIZE);
             }
         } else {
-            BtlRes_Reload(Battle_GetFighterModelSlot(job->side), model, -1, -1);
+            BtlRes_Reload(BattleSide_GetModelSlot(job->side), model, -1, -1);
         }
         Battle_GetWork()->flags |= BATTLE_FLAG_LOAD_CHARA;
         job->state++;
@@ -459,14 +454,14 @@ s32 BtlLoad_StepChara(BtlJob *job) {
         if (job->modelOnly == 0) {
             if (job->side == 0) {
                 Snd_ReloadBank(0x10, res->bank, 0);
-            } else if (job->side == 1) {
+            } else {
                 Snd_ReloadBank(0x20, res->bank, 0);
             }
         }
-        BtlObj_Rebind(Battle_GetFighterObjId(job->side), Battle_GetFighterModelSlot(job->side));
+        BtlObj_Rebind(BattleSide_GetObjId(job->side), BattleSide_GetModelSlot(job->side));
         switch (job->kind) {
         case 0:
-            BtlObjAnim_PlayAuto(BtlObj_Get(Battle_GetFighterObjId(job->side)), 0, 2);
+            BtlObjAnim_PlayAuto(BtlObj_Get(BattleSide_GetObjId(job->side)), 0, 2);
             break;
         case BTL_JOB_KIND_CHANGE:
             BtlChars_OnModelLoaded(job->side);
@@ -474,12 +469,9 @@ s32 BtlLoad_StepChara(BtlJob *job) {
         }
         if (job->modelOnly == 0) {
             BtlAiMgr_ResetSide(job->side);
-            if (job->side < 2) {
-                BtlScene_CreateChar(job->side);
-            }
+            BtlScene_CreateChar(job->side);
             if (!BtlCtrl_IsSwitching(job->side)) {
-                s32 teamSide = job->side & 1;
-                m = BattleSide_GetMember(teamSide, BtlSide_GetActiveMember(teamSide));
+                m = BattleSide_GetMember(job->side, BtlSide_GetActiveMember(job->side));
                 if (m != NULL) {
                     Res_RelocateOffsets(&m->buf[1], m->buf[1], m->buf[1]);
                     m->data = m->buf[1];
@@ -540,21 +532,8 @@ s32 BtlLoad_StepInitial(BtlJob *job) {
         job->state++;
         break;
     case 4:
-        Battle_SetFighterModelSlot(0, BtlObj_RequestCharaModel(0, BattleSide_GetStartChara(0), BattleSide_GetStartCostume(0), BattleSide_GetStartVariant(0)));
-        Battle_SetFighterModelSlot(1, BtlObj_RequestCharaModel(1, BattleSide_GetStartChara(1), BattleSide_GetStartCostume(1), BattleSide_GetStartVariant(1)));
-        if (Battle_IsTagTeam()) {
-            BattleMember *m0 = BattleSide_GetMember(0, 1);
-            BattleMember *m1 = BattleSide_GetMember(1, 1);
-            s32 chara0 = (m0 != NULL && m0->chara >= 0) ? m0->chara : BattleSide_GetStartChara(0);
-            s32 cost0  = (m0 != NULL) ? m0->costume : 0;
-            s32 var0   = (m0 != NULL) ? m0->variant : 0;
-            s32 chara1 = (m1 != NULL && m1->chara >= 0) ? m1->chara : BattleSide_GetStartChara(1);
-            s32 cost1  = (m1 != NULL) ? m1->costume : 0;
-            s32 var1   = (m1 != NULL) ? m1->variant : 0;
-
-            Battle_SetFighterModelSlot(2, BtlObj_RequestCharaModel(2, chara0, cost0, var0));
-            Battle_SetFighterModelSlot(3, BtlObj_RequestCharaModel(3, chara1, cost1, var1));
-        }
+        BattleSide_SetModelSlot(0, BtlObj_RequestCharaModel(0, BattleSide_GetStartChara(0), BattleSide_GetStartCostume(0), BattleSide_GetStartVariant(0)));
+        BattleSide_SetModelSlot(1, BtlObj_RequestCharaModel(1, BattleSide_GetStartChara(1), BattleSide_GetStartCostume(1), BattleSide_GetStartVariant(1)));
 #ifdef PORT
         {
             /* PC build: the buffer is the game's own size unless a stage added from outside the disc is larger
@@ -732,8 +711,7 @@ void BtlLoad_PollCharaRequest(void) {
     s32 modelOnly;
     BtlJob *job;
 
-    s32 maxFighters = Battle_IsTagTeam() ? 4 : 2;
-    for (side = 0; side < maxFighters; side++) {
+    for (side = 0; side < 2; side++) {
         if (BtlChange_IsPendingType0(side)) {
             BtlChange_GetArgs(&chara, &costume, &variant, &animChara, &unk1C, &voiceChara, NULL);
             if (animChara < 0 && unk1C < 0 && voiceChara < 0) {
@@ -754,7 +732,7 @@ void BtlLoad_PollCharaRequest(void) {
             job->variant = variant;
             job->modelOnly = modelOnly;
             job->initial = 0;
-            if (modelOnly == 0 && side < 2) {
+            if (modelOnly == 0) {
                 BtlScene_FreeChar(side);
             }
             BattleSide_SetForm(job->side, job->chara, job->costume, job->variant);
@@ -1958,41 +1936,6 @@ s32 BattleSide_GetMemberCount(s32 side) {
     return Side(side)->memberCount;
 }
 
-static s32 sFighterObjId[4] = { -1, -1, -1, -1 };
-static s32 sFighterModelSlot[4] = { -1, -1, -1, -1 };
-
-s32 Battle_GetFighterObjId(s32 index) {
-    if (index >= 0 && index < 4 && sFighterObjId[index] >= 0) {
-        return sFighterObjId[index];
-    }
-    return BattleSide_GetObjId(index & 1);
-}
-
-void Battle_SetFighterObjId(s32 index, s32 objId) {
-    if (index >= 0 && index < 4) {
-        sFighterObjId[index] = objId;
-    }
-    if (index < 2) {
-        BattleSide_SetObjId(index, objId);
-    }
-}
-
-s32 Battle_GetFighterModelSlot(s32 index) {
-    if (index >= 0 && index < 4 && sFighterModelSlot[index] >= 0) {
-        return sFighterModelSlot[index];
-    }
-    return BattleSide_GetModelSlot(index & 1);
-}
-
-void Battle_SetFighterModelSlot(s32 index, s32 slot) {
-    if (index >= 0 && index < 4) {
-        sFighterModelSlot[index] = slot;
-    }
-    if (index < 2) {
-        BattleSide_SetModelSlot(index, slot);
-    }
-}
-
 /* Object id of the side's fighter (argument of BtlObj_Get). */
 s32 BattleSide_GetObjId(s32 side) {
     return Side(side)->objId;
@@ -2013,27 +1956,15 @@ void BattleSide_SetModelSlot(s32 side, s32 slot) {
     Side(side)->modelSlot = slot;
 }
 
-static BattleForm sFighterForm[4];
-
 /* Sets the currently loaded character, costume and variant. */
 void BattleSide_SetForm(s32 side, s32 chara, s32 costume, s32 variant) {
-    if (side >= 0 && side < 4) {
-        sFighterForm[side].chara = chara;
-        sFighterForm[side].costume = costume;
-        sFighterForm[side].variant = variant;
-    }
-    if (side >= 0 && side < 2) {
-        Side(side)->form.chara = chara;
-        Side(side)->form.costume = costume;
-        Side(side)->form.variant = variant;
-    }
+    Side(side)->form.chara = chara;
+    Side(side)->form.costume = costume;
+    Side(side)->form.variant = variant;
 }
 
 /* 1 when the current character, costume or variant differs from the starting one. */
 s32 BattleSide_IsFormChanged(s32 side) {
-    if (side < 0 || side >= 2) {
-        return 0;
-    }
     if (Side(side)->form.chara != Side(side)->startForm.chara) {
         return 1;
     }

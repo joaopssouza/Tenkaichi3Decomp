@@ -268,11 +268,6 @@ BattleMemberPool *Battle_GetWork5A8(void);
 /* src/battle/battle_load.c (setup getters, see battle/battle_setup.h for the rest) */
 s32 Battle_IsSplitScreen(void);
 s32 Battle_GetMode(void);
-s32 Battle_IsTagTeam(void);
-s32 Battle_GetFighterObjId(s32 index);
-void Battle_SetFighterObjId(s32 index, s32 objId);
-s32 Battle_GetFighterModelSlot(s32 index);
-void Battle_SetFighterModelSlot(s32 index, s32 slot);
 
 s32 Battle_Restart(void);
 s32 Battle_Init(void);

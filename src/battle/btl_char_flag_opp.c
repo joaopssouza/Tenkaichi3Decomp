@@ -37,59 +37,7 @@ extern s32 BtlParam_GetUnk0(BtlFlagChr *chr);                        /* u16 at +
 extern s32 BtlParam_GetUnk2(BtlFlagChr *chr);                        /* s8 at +2 of the object's parameter block */
 extern f32 BtlParam_GetUnkC7Scale(BtlFlagChr *chr);
 
-extern s32 BtlChar_GetCount(void);
-
-static s32 sOppTarget[4] = {1, 0, 3, 2};
-
-void BtlOpp_SwitchTarget(s32 player) {
-    if (player >= 0 && player < 4) {
-        sOppTarget[player] ^= 2;
-    }
-}
-
-s32 BtlOpp_GetTargetIndex(s32 player) {
-    if (player >= 0 && player < 4) {
-        return sOppTarget[player];
-    }
-    return player ^ 1;
-}
-
-static BtlFlagChr *BtlOpp_ResolveOpponent(BtlFlagChr *chr) {
-    s32 count = BtlChar_GetCount();
-    s32 p = chr->player;
-    s32 target;
-    BtlFlagChr *tchr;
-
-    if (count <= 2 || p < 0 || p >= 4) {
-        return chr->player == 0 ? BtlChar_Get(1) : BtlChar_Get(0);
-    }
-
-    target = sOppTarget[p];
-    if (target < 0 || target >= count || (target & 1) == (p & 1)) {
-        target = p ^ 1;
-        sOppTarget[p] = target;
-    }
-
-    tchr = BtlChar_Get(target);
-    if (tchr != NULL && BtlChar_IsDead(tchr)) {
-        s32 alt = target ^ 2;
-        if (alt < count) {
-            BtlFlagChr *altChr = BtlChar_Get(alt);
-            if (altChr != NULL && !BtlChar_IsDead(altChr)) {
-                target = alt;
-                sOppTarget[p] = target;
-                tchr = altChr;
-            }
-        }
-    }
-
-    if (tchr == NULL) {
-        tchr = (p & 1) ? BtlChar_Get(0) : BtlChar_Get(1);
-    }
-    return tchr;
-}
-
-#define OPPONENT(chr) BtlOpp_ResolveOpponent(chr)
+#define OPPONENT(chr) ((chr)->player == 0 ? BtlChar_Get(1) : BtlChar_Get(0))
 
 /* Where to aim at the opponent: its override position 6 when set, else its position. */
 void BtlOpp_GetTargetPos(BtlFlagChr *chr, Vec4 *out) {
@@ -368,7 +316,13 @@ s32 BtlOpp_GetClashCountB(BtlFlagChr *chr) {
 
 /* Copies what the opponent is doing into this fighter's flags 0xAC..0xB9 and 0xD6. */
 void BtlOpp_MirrorFlags(BtlFlagChr *chr) {
-    BtlFlagChr *opp = OPPONENT(chr);
+    BtlFlagChr *opp;
+
+    if (chr->player == 0) {
+        opp = BtlChar_Get(1);
+    } else {
+        opp = BtlChar_Get(0);
+    }
     BtlChar_ClearFlagRange(chr, 0xAC, 0xB9);
     if (BtlChar_TestFlag(opp, 0xB)) {
         BtlChar_SetHeldFlag(chr, 0xAC);

@@ -26,17 +26,7 @@ extern int32_t BattleSide_GetMemberVariant(int32_t side, int32_t idx);
 extern int32_t BattleResult_GetFlags(void);
 extern int32_t BattleResult_GetReason(void);
 
-/* Check if currently in logo/opening sequence */
-EMSCRIPTEN_KEEPALIVE int Web_InLogos(void) {
-    /* If gPortMenuMode is not 1 and battle is not active, game is in boot/logos */
-    return gPortMenuMode == 0 ? 1 : 0;
-}
-
-/* Game mode query (0: Versus Duel, 1: Story, 2: Tournament, 3: Sim, 4: Custom, -1: Menu) */
-EMSCRIPTEN_KEEPALIVE int Web_GameMode(void) {
-    if (gPortMenuMode) return -1;
-    return 0; /* Default versus duel mode */
-}
+/* (Web_InLogos and Web_GameMode are port/src/headless.c's.) */
 
 /* Set dynamic runtime options from frontend (0: interp, 1: texpack, 2: wide, 3: fx) */
 EMSCRIPTEN_KEEPALIVE int Web_Option(int opt, int val) {

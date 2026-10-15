@@ -207,8 +207,7 @@ typedef struct BtlResSlot {
 #define BTL_RES_SLOT_HEAP 2 /* the buffers came from the heap (File_Request allocated them) */
 
 #define BTL_RES_SLOT_MAX 12
-#define BTL_RES_FIXED_MAX 4
-#define BTL_RES_SPARE_MAX 5
+#define BTL_RES_FIXED_MAX 2
 #define BTL_RES_ID_KEEP (-99) /* BtlRes_SetFileId: leave the file as it is */
 
 /* Buffer sizes of a fixed slot. */
@@ -219,12 +218,12 @@ typedef struct BtlResSlot {
 /* The resource part of the work block (gBtlObjWork + 0x6B3EC). */
 typedef struct BtlResWork {
     /* 0x000 */ BtlResSlot slots[BTL_RES_SLOT_MAX];  /* heap-loaded models */
-    /* 0x2A0 */ BtlResSlot fixed[BTL_RES_FIXED_MAX]; /* the fighters, preallocated buffers */
-    /* 0x310 */ BtlResFile spare[BTL_RES_SPARE_MAX]; /* model buffers: [0..3] in fixed[0..3]; [4] is free next */
+    /* 0x2A0 */ BtlResSlot fixed[BTL_RES_FIXED_MAX]; /* the two fighters, preallocated buffers */
+    /* 0x310 */ BtlResFile spare[3];  /* model buffers: [0], [1] start in fixed[0], fixed[1]; [2] is free */
     /* 0x340 */ BtlResFile *next;     /* the model buffer not in use: a character change loads into it */
     /* 0x344 */ s32 pending;          /* fixed slot waiting for BtlRes_CommitReload, -1 = none */
     /* 0x348 */ s32 prealloc;         /* argument of BtlObj_Init: 1 = the fixed slots exist */
-} BtlResWork;
+} BtlResWork; /* size 0x34C */
 
 /* Pool element: the list link and the id come first, the object itself starts at +0x10. */
 typedef struct BtlObjNode {
@@ -246,8 +245,7 @@ typedef struct BtlObjTable {
     /* 0x44FC8 */ u8 unk44FC8[0x38];
 } BtlObjTable; /* size 0x45000 */
 
-/* Element of the 2048-entry pool (expanded from 512 for tag team / multi-character battles). */
-#define BTL_OBJ_POOL_E0_MAX 2048
+/* Element of the 512-entry pool. */
 typedef struct BtlObjPoolE0 {
     /* 0x00 */ SListNode link;
     /* 0x04 */ u8 unk04[0x8C];
@@ -257,10 +255,10 @@ typedef struct BtlObjPoolE0 {
 } BtlObjPoolE0; /* size 0xE0 */
 
 typedef struct BtlObjPoolE0Work {
-    /* 0x00000 */ BtlObjPoolE0 nodes[BTL_OBJ_POOL_E0_MAX];
+    /* 0x00000 */ BtlObjPoolE0 nodes[512];
     /* 0x1C000 */ SList free;
     /* 0x1C00C */ s32 pad;
-} BtlObjPoolE0Work;
+} BtlObjPoolE0Work; /* size 0x1C010 */
 
 typedef struct BtlObjPool70 {
     /* 0x00 */ SListNode link;
