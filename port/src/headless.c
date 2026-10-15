@@ -95,6 +95,51 @@ static void port_stage_replace_init(void) {
 
 extern void Port_NetRules(int *type, int *dp, int *time); /* gs/net.c */
 
+/* BT3_TAG=<teams|ffa>:<n> (n = 2..4): the attract-demo battle as a Tag Team battle of n fighters (include/battle/
+   tag_team.h; physical fighter i on side i & 1, as the Tag Team mod numbers them). The extra fighters are the demo's
+   other pairings' first characters, CPU like the demo's. Anything else: said, and the demo stays as it is. */
+#include "battle/tag_team.h"
+extern void BattleSetup_SetSide(int side, int control, int pad, int memberCount, int unk1FC, int unk200, int lead, void *bits);
+extern void BattleSetup_SetMember(int side, int idx, int chara, int costume, int variant, int cpuLevel, float health, void *items);
+extern void BattleSetup_Finish(void);
+extern int CpuLevel_FromSetting(int setting);
+
+static void tag_setup(void) {
+    static const int extra[] = {0x2A, 0x19}; /* (src/battle/view_b_c.c: pairings 1 and 2) */
+    const char *t = getenv("BT3_TAG");
+    char *end;
+    int mode, n, side, k;
+
+    if (t == NULL) {
+        return;
+    }
+    if (strncmp(t, "teams:", 6) == 0) {
+        mode = TAG_MODE_TEAMS;
+        t += 6;
+    } else if (strncmp(t, "ffa:", 4) == 0) {
+        mode = TAG_MODE_FFA;
+        t += 4;
+    } else {
+        printf("bt3: BT3_TAG ignored: the mode is teams or ffa (BT3_TAG=teams:4)\n");
+        return;
+    }
+    n = (int)strtol(t, &end, 10);
+    if (end == t || *end != '\0' || n < 2 || n > TAG_FIGHTERS_MAX) {
+        printf("bt3: BT3_TAG ignored: 2 to %d fighters (BT3_TAG=teams:4)\n", TAG_FIGHTERS_MAX);
+        return;
+    }
+    TagTeam_Set(mode, n);
+    for (side = 0; side < 2; side++) {
+        int members = (n - side + 1) / 2; /* fighters side, side + 2, ...: side 0 has the odd one out */
+        BattleSetup_SetSide(side, 2, side, members, 1, 1, 0, NULL);
+        for (k = 1; k < members; k++) {
+            BattleSetup_SetMember(side, k, extra[side], 0, 0, CpuLevel_FromSetting(2), 100.0f, NULL);
+        }
+    }
+    BattleSetup_Finish();
+    printf("bt3: tag team: %s, %d fighters\n", mode == TAG_MODE_TEAMS ? "teams" : "free for all", n);
+}
+
 int __wrap_Progress_Main(int arg) {
     const char *path;
     PortStages_Init();
@@ -164,6 +209,7 @@ int __wrap_Progress_Main(int arg) {
     } else {
         Demo_SetupBattle();
         printf("bt3: attract-demo battle\n");
+        tag_setup();
         /* BT3_CHARA=<id> (and BT3_COSTUME=<n>, BT3_VARIANT=1 for the damaged model): side 0's fighter of the demo
            battle, for looking at one character's model without going through the menus */
         if (getenv("BT3_CHARA") != NULL) {
