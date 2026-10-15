@@ -406,20 +406,25 @@ s32 BtlLoad_StepChara(BtlJob *job) {
             file8 = job->animChara * 10 + (BTL_FILE_CHARA + 8);
             file9 = job->unk1C * 10 + (BTL_FILE_CHARA + 9);
             voice = job->voiceChara + ((gSaveData->flags & SAVE_FLAG_VOICE) ? BTL_FILE_VOICE_ALT : BTL_FILE_VOICE);
-            BtlRes_Reload(BattleSide_GetModelSlot(job->side), model, file8, file9);
-            res->bank = File_Request3(voice, res->bank, res->bankSize);
+            BtlRes_Reload(Battle_GetFighterModelSlot(job->side), model, file8, file9);
+            if (job->side < 2) {
+                res->bank = File_Request3(voice, res->bank, res->bankSize);
+            }
             if (!BtlCtrl_IsSwitching(job->side)) {
                 BattleMember *next;
+                s32 teamSide = job->side & 1;
 
                 member = 0;
                 if (job->initial == 0) {
-                    member = BtlSide_GetActiveMember(job->side);
+                    member = BtlSide_GetActiveMember(teamSide);
                 }
-                next = BattleSide_GetMember(job->side, member);
-                next->buf[1] = File_Request3(job->chara * 2 + job->side + BTL_FILE_CHARA_DATA, next->buf[1], BTL_MEMBER_BUF_SIZE);
+                next = BattleSide_GetMember(teamSide, member);
+                if (next != NULL) {
+                    next->buf[1] = File_Request3(job->chara * 2 + teamSide + BTL_FILE_CHARA_DATA, next->buf[1], BTL_MEMBER_BUF_SIZE);
+                }
             }
         } else {
-            BtlRes_Reload(BattleSide_GetModelSlot(job->side), model, -1, -1);
+            BtlRes_Reload(Battle_GetFighterModelSlot(job->side), model, -1, -1);
         }
         Battle_GetWork()->flags |= BATTLE_FLAG_LOAD_CHARA;
         job->state++;
@@ -454,14 +459,14 @@ s32 BtlLoad_StepChara(BtlJob *job) {
         if (job->modelOnly == 0) {
             if (job->side == 0) {
                 Snd_ReloadBank(0x10, res->bank, 0);
-            } else {
+            } else if (job->side == 1) {
                 Snd_ReloadBank(0x20, res->bank, 0);
             }
         }
-        BtlObj_Rebind(BattleSide_GetObjId(job->side), BattleSide_GetModelSlot(job->side));
+        BtlObj_Rebind(Battle_GetFighterObjId(job->side), Battle_GetFighterModelSlot(job->side));
         switch (job->kind) {
         case 0:
-            BtlObjAnim_PlayAuto(BtlObj_Get(BattleSide_GetObjId(job->side)), 0, 2);
+            BtlObjAnim_PlayAuto(BtlObj_Get(Battle_GetFighterObjId(job->side)), 0, 2);
             break;
         case BTL_JOB_KIND_CHANGE:
             BtlChars_OnModelLoaded(job->side);
@@ -469,9 +474,12 @@ s32 BtlLoad_StepChara(BtlJob *job) {
         }
         if (job->modelOnly == 0) {
             BtlAiMgr_ResetSide(job->side);
-            BtlScene_CreateChar(job->side);
+            if (job->side < 2) {
+                BtlScene_CreateChar(job->side);
+            }
             if (!BtlCtrl_IsSwitching(job->side)) {
-                m = BattleSide_GetMember(job->side, BtlSide_GetActiveMember(job->side));
+                s32 teamSide = job->side & 1;
+                m = BattleSide_GetMember(teamSide, BtlSide_GetActiveMember(teamSide));
                 if (m != NULL) {
                     Res_RelocateOffsets(&m->buf[1], m->buf[1], m->buf[1]);
                     m->data = m->buf[1];
@@ -724,7 +732,8 @@ void BtlLoad_PollCharaRequest(void) {
     s32 modelOnly;
     BtlJob *job;
 
-    for (side = 0; side < 2; side++) {
+    s32 maxFighters = Battle_IsTagTeam() ? 4 : 2;
+    for (side = 0; side < maxFighters; side++) {
         if (BtlChange_IsPendingType0(side)) {
             BtlChange_GetArgs(&chara, &costume, &variant, &animChara, &unk1C, &voiceChara, NULL);
             if (animChara < 0 && unk1C < 0 && voiceChara < 0) {
@@ -745,7 +754,7 @@ void BtlLoad_PollCharaRequest(void) {
             job->variant = variant;
             job->modelOnly = modelOnly;
             job->initial = 0;
-            if (modelOnly == 0) {
+            if (modelOnly == 0 && side < 2) {
                 BtlScene_FreeChar(side);
             }
             BattleSide_SetForm(job->side, job->chara, job->costume, job->variant);
@@ -2004,15 +2013,27 @@ void BattleSide_SetModelSlot(s32 side, s32 slot) {
     Side(side)->modelSlot = slot;
 }
 
+static BattleForm sFighterForm[4];
+
 /* Sets the currently loaded character, costume and variant. */
 void BattleSide_SetForm(s32 side, s32 chara, s32 costume, s32 variant) {
-    Side(side)->form.chara = chara;
-    Side(side)->form.costume = costume;
-    Side(side)->form.variant = variant;
+    if (side >= 0 && side < 4) {
+        sFighterForm[side].chara = chara;
+        sFighterForm[side].costume = costume;
+        sFighterForm[side].variant = variant;
+    }
+    if (side >= 0 && side < 2) {
+        Side(side)->form.chara = chara;
+        Side(side)->form.costume = costume;
+        Side(side)->form.variant = variant;
+    }
 }
 
 /* 1 when the current character, costume or variant differs from the starting one. */
 s32 BattleSide_IsFormChanged(s32 side) {
+    if (side < 0 || side >= 2) {
+        return 0;
+    }
     if (Side(side)->form.chara != Side(side)->startForm.chara) {
         return 1;
     }

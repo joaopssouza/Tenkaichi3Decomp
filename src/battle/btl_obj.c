@@ -271,7 +271,7 @@ void BtlObjPoolE0_Init(void) {
 
     memset(pool, 0, sizeof(BtlObjPoolE0Work));
     node = pool->nodes;
-    for (i = 0; i < 512; i++) {
+    for (i = 0; i < BTL_OBJ_POOL_E0_MAX; i++) {
         SList_PushFront(&pool->free, &node->link);
         node++;
     }
@@ -437,14 +437,11 @@ BtlObj *BtlObj_Get(s32 id) {
     return gBtlObjTbl[id];
 }
 
-static u8 sExtraCharaWork[4][0x1A0C0];
+/* Expanded fighter scratch buffer: 0x30000 (192 KB) for collisions (0x1C800), shaders (0x20000), fx (0x22100) and transforms */
+static u8 sExtraCharaWork[4][0x30000];
 
 /* Returns the big work buffer that goes with a fighter object id. */
 u8 *BtlObj_GetCharaWork(u32 id) {
-    if (id < 2) {
-        BtlObjTable *tbl = BtlObj_GetTable();
-        return tbl->charaWork[id];
-    }
     if (id < 4) {
         return sExtraCharaWork[id];
     }
@@ -522,7 +519,7 @@ s32 BtlObj_RequestCharaModel(s32 side, s32 chara, s32 costume, s32 variant) {
     } else {
         model = chara * 10 + costume + 0x590;
     }
-    return BtlRes_Request(side < 2 ? 1 : 0, model, chara * 10 + 0x598, chara * 10 + 0x599);
+    return BtlRes_Request(side < BTL_RES_FIXED_MAX ? 1 : 0, model, chara * 10 + 0x598, chara * 10 + 0x599);
 }
 
 /* Returns the work block. */
@@ -1187,7 +1184,7 @@ void BtlRes_Init(s32 prealloc) {
     memset(res, 0, sizeof(BtlResWork));
     res->prealloc = prealloc;
     if (prealloc != 0) {
-        for (i = 0; i < 3; i++) {
+        for (i = 0; i < BTL_RES_SPARE_MAX; i++) {
             res->spare[i].buf = Heap_Alloc(BTL_RES_MODEL_SIZE, 0x40, 0, HEAP_ANY);
             res->spare[i].size = 0;
             res->spare[i].id = -1;
@@ -1208,7 +1205,7 @@ void BtlRes_Init(s32 prealloc) {
             BtlRes_CopyFile(&slot->file[0], spare);
             slot->number = number++;
         }
-        res->next = &res->spare[2];
+        res->next = &res->spare[BTL_RES_FIXED_MAX];
     }
     for (i = 0; i < BTL_RES_SLOT_MAX; i++) {
         slot = &res->slots[i];
@@ -1236,7 +1233,7 @@ void BtlRes_Term(void) {
         }
         slot++;
     }
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < BTL_RES_SPARE_MAX; i++) {
         if (res->spare[i].orig != NULL) {
             Heap_Free(res->spare[i].orig);
         }
