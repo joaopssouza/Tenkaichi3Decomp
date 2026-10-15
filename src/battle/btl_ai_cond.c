@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_ai_slot.h"
 #include "battle/btl_ai_int.h"
 #include "battle/btl_ai_think.h"
 #include "sys/common.h"
@@ -2300,7 +2301,7 @@ void AiThink_ReadKit(AiThWork *ai) {
  * buffer is dead: the original copied the debug label into it and its user was compiled out. */
 void AiThink_ResetSide(s32 side, s32 owned) {
     char name[256];
-    AiThWork *ai = &gBtlAi->work[side];
+    AiThWork *ai = &gBtlAi->work[BTLAI_SLOT(side)];
     AiThRange *range = &ai->range;
     void *param = NULL;
     f32 d;

@@ -5,6 +5,9 @@
 #include "battle/battle.h"
 #include <stdio.h>
 #include "battle/stg_a.h"
+#include "battle/btl_ai.h"
+
+extern BtlAi *gBtlAi;
 
 extern f32 sqrtf(f32 x);
 #include "sys/math3d.h"
@@ -165,6 +168,57 @@ s32 TagTeam_StartPlace(s32 p, Vec4 *pos, Vec4 *rot) {
     return BtlStage_ProbeGround(-1, pos, &hit);
 }
 
+void *TagTeam_Opponent(void *chr, void *gameOpponent) {
+    s32 p, q;
+
+    if (sMode == TAG_MODE_NONE || (p = TagTeam_Seat(chr)) < 0) {
+        return gameOpponent;
+    }
+    q = p ^ 1;
+    if (q >= gBtlChars->count) { /* (an odd one out: the other side's leader) */
+        q = (p & 1) ^ 1;
+    }
+    return &gBtlChars->chars[q];
+}
+
+/* The objects of the fighters that the fighter with object objId may hit, its pair (p ^ 1) first: in teams those of
+   the other side, in a free-for-all everybody else. -1 count: objId is not a fighter (the game's rule applies). */
+s32 TagTeam_FighterCount(void) {
+    return gBtlChars != NULL && gBtlChars->chars != NULL ? gBtlChars->count : 0;
+}
+
+s32 TagTeam_FighterObjId(s32 p) {
+    return p >= 0 && p < TagTeam_FighterCount() ? gBtlChars->chars[p].objId : -1;
+}
+
+s32 TagTeam_Enemies(s32 objId, s32 *out) {
+    s32 p, q, n = 0, me = -1;
+
+    if (sMode == TAG_MODE_NONE || gBtlChars == NULL) {
+        return -1;
+    }
+    for (p = 0; p < gBtlChars->count; p++) {
+        if (gBtlChars->chars[p].objId == objId) {
+            me = p;
+        }
+    }
+    if (me < 0) {
+        return -1;
+    }
+    if ((me ^ 1) < gBtlChars->count) {
+        out[n++] = gBtlChars->chars[me ^ 1].objId;
+    }
+    for (q = 0; q < gBtlChars->count; q++) {
+        if (q == me || q == (me ^ 1)) {
+            continue;
+        }
+        if (sMode == TAG_MODE_FFA || (q & 1) != (me & 1)) {
+            out[n++] = gBtlChars->chars[q].objId;
+        }
+    }
+    return n;
+}
+
 s32 TagTeam_SeatObjId(s32 p, s32 sideObjId) {
     if (sMode == TAG_MODE_NONE || p < 2 || p >= TAG_FIGHTERS_MAX || sSeatObj[p] < 0) {
         return sideObjId;
@@ -209,6 +263,23 @@ EMSCRIPTEN_KEEPALIVE s32 Web_FighterCount(void) {
 EMSCRIPTEN_KEEPALIVE s32 Web_FighterSide(s32 i) {
     BtlMgrChr *chr = fighter(i);
     return chr != NULL ? chr->side : -1;
+}
+
+/* Diagnostics for the tests: what drives fighter i. 0: its input is the AI's (injectOn); 1: the AI work of side i
+   has parameters (runs); 2: that AI work's last buttons; 3: that AI work's object. -1: no such thing. */
+EMSCRIPTEN_KEEPALIVE s32 Web_FighterDebug(s32 kind, s32 i) {
+    BtlMgrChr *chr = fighter(i);
+    switch (kind) {
+    case 0:
+        return chr != NULL ? chr->injectOn : -1;
+    case 1:
+        return gBtlAi != NULL && i >= 0 && i < 2 ? gBtlAi->work[i].param != NULL : -1;
+    case 2:
+        return gBtlAi != NULL && i >= 0 && i < 2 ? (s32)gBtlAi->work[i].out.buttons : -1;
+    case 3:
+        return gBtlAi != NULL && i >= 0 && i < 2 ? gBtlAi->work[i].objId : -1;
+    }
+    return -1;
 }
 
 EMSCRIPTEN_KEEPALIVE s32 Web_FighterObjId(s32 i) {

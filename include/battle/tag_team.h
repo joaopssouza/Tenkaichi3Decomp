@@ -33,6 +33,10 @@ s32 TagTeam_Seat(void *chr);                   /* the fighter's seat p, -1 if it
 struct Vec4;
 s32 TagTeam_StartPlace(s32 p, struct Vec4 *pos, struct Vec4 *rot); /* an extra seat's start (the shallow V); returns the zone */
 s32 TagTeam_SeatObjId(s32 p, s32 sideObjId);   /* the fighter's object: its own for an extra seat, else sideObjId */
-u8 *TagTeam_CharaWork(s32 objId);              /* an extra fighter's object's work buffer, NULL for any other */
+u8 *TagTeam_CharaWork(s32 objId);
+s32 TagTeam_FighterCount(void);                /* fighters of the battle on now, 0 outside one */
+s32 TagTeam_FighterObjId(s32 p);               /* fighter p's object, -1 if none */
+s32 TagTeam_Enemies(s32 objId, s32 *out); /* objects objId may hit (up to TAG_FIGHTERS_MAX - 1), -1: not a fighter */
+void *TagTeam_Opponent(void *chr, void *gameOpponent); /* the fighter's opponent: its pair p ^ 1, else gameOpponent */              /* an extra fighter's object's work buffer, NULL for any other */
 
 #endif

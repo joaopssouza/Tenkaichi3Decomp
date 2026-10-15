@@ -594,7 +594,11 @@ void BtlChar_ResetObjWork(BtlMgrChr *chr) {
 
 /* Decides which fighters are frozen (hit-stop) and counts the freeze timers down. */
 void BtlChars_UpdateFreeze(void) {
+#ifdef PORT
+    s32 level[TAG_FIGHTERS_MAX]; /* one per fighter: a Tag Team battle has more than two (battle/tag_team.h) */
+#else
     s32 level[2];
+#endif
     s32 i;
     s32 max;
     u8 *bytes;
