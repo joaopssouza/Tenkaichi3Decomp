@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """The page's home-screen icon (an orange ball with four stars) and web app manifest -> port/build/web/."""
 import json, math, pathlib, sys
-from PIL import Image, ImageDraw
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    Image = None
 
 OUT = pathlib.Path(__file__).resolve().parents[2] / "port/build/web"
 
@@ -36,8 +39,11 @@ def icon(size):
 # server needs; the app keeps its own cookies, apart from Safari's)
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for n in (180, 192, 512):
-        icon(n).save(OUT / f"icon-{n}.png")
+    if Image is None:
+        print("warning: PIL not available, skipping icon generation")
+    else:
+        for n in (180, 192, 512):
+            icon(n).save(OUT / f"icon-{n}.png")
     (OUT / "manifest.webmanifest").write_text(json.dumps({
         "name": "Budokai Tenkaichi 3", "short_name": "Tenkaichi 3", "display": "fullscreen",
         "background_color": "#000000", "theme_color": "#000000",
