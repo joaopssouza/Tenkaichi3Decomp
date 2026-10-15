@@ -79,20 +79,6 @@ void Heap_Create(void) {
     gHeapEnd[0] = (HeapBlock *)((u8 *)start + size);
     gHeapStart[0] = start;
     Heap_InitFreeBlock(start, size);
-
-#if defined(PORT) || defined(__EMSCRIPTEN__) || !defined(TARGET_PS2)
-    /* Memory expansion for Tag Team: initialize Heap 1 with 64 MB */
-    {
-        s32 size1 = 0x04000000; /* 64 MB */
-        HeapBlock *start1 = malloc(size1);
-        if (start1 != NULL) {
-            gHeapSize[1] = size1;
-            gHeapEnd[1] = (HeapBlock *)((u8 *)start1 + size1);
-            gHeapStart[1] = start1;
-            Heap_InitFreeBlock(start1, size1);
-        }
-    }
-#endif
 }
 
 HeapBlock *Heap_FindBlock(u32 data) {
