@@ -245,7 +245,11 @@ void BtlChar_BindObject(BtlMgrChr *chr) {
     BtlMgrObj *obj;
     s32 i;
 
+#ifdef PORT
+    chr->objId = TagTeam_SeatObjId(chr - gBtlChars->chars, BattleSide_GetObjId(chr->side)); /* (battle/tag_team.h) */
+#else
     chr->objId = BattleSide_GetObjId(chr->side);
+#endif
     obj = BtlChar_GetObj(chr);
     chr->unk980 = -1;
     for (i = 0; i < 3; i++) {

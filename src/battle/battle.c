@@ -181,6 +181,9 @@ s32 Battle_Term(void) {
     StgNav_Term();
     BtlGame_Term();
     Battle_Unload();
+#ifdef PORT
+    TagTeam_EndBattle();
+#endif
     Fade_ResetAll();
     Dma_ResetBuffers();
     Job_Clear();

@@ -105,6 +105,9 @@ s32 Battle_Load(void) {
     Load_RunBlocking();
     BattleSide_SetObjId(0, BtlObj_CreateChara(BattleSide_GetModelSlot(0)));
     BattleSide_SetObjId(1, BtlObj_CreateChara(BattleSide_GetModelSlot(1)));
+#ifdef PORT
+    TagTeam_CreateSeatObjects(); /* a Tag Team battle's extra fighters (battle/tag_team.h) */
+#endif
     return 1;
 }
 

@@ -535,6 +535,9 @@ s32 BtlLoad_StepInitial(BtlJob *job) {
         BattleSide_SetModelSlot(0, BtlObj_RequestCharaModel(0, BattleSide_GetStartChara(0), BattleSide_GetStartCostume(0), BattleSide_GetStartVariant(0)));
         BattleSide_SetModelSlot(1, BtlObj_RequestCharaModel(1, BattleSide_GetStartChara(1), BattleSide_GetStartCostume(1), BattleSide_GetStartVariant(1)));
 #ifdef PORT
+        TagTeam_RequestSeatModels(); /* a Tag Team battle's extra fighters' models (battle/tag_team.h) */
+#endif
+#ifdef PORT
         {
             /* PC build: the buffer is the game's own size unless a stage added from outside the disc is larger
                (port/src/plat_stages.c); a file larger than the buffer overruns it, and nothing on the way checks. */

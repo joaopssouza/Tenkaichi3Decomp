@@ -85,6 +85,20 @@ test('BT3_TAG=teams:4 puts two fighters on each side', opts, async () => {
   }
 });
 
+test('BT3_TAG=teams:4 gives every fighter its own model and object, their work in the extra memory', opts, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'teams:4' } });
+  try {
+    const f = await afterFighting(g, 10);
+    const ids = await g.evaluate(() => [0, 1, 2, 3].map((i) => Module._Web_FighterObjId(i)));
+    assert.strictEqual(new Set(ids).size, 4, `four objects: ${ids}`);
+    assert.ok(ids.every((id) => id >= 0), `objects exist: ${ids}`);
+    assert.ok(f.every((x) => x.hp > 0), `all four have health: ${f.map((x) => x.hp)}`);
+    assert.ok((await g.evaluate(() => Module._Web_ExtraUsed())) >= 2 * 0x1A0C0, 'the extra fighters work in the extra memory');
+  } finally {
+    await g.close();
+  }
+});
+
 test('an invalid BT3_TAG is said and ignored: the usual two-fighter battle', opts, async () => {
   const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'ffa:9' } });
   try {

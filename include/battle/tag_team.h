@@ -24,4 +24,12 @@ s32 TagTeam_SeatSide(s32 p);
 s32 TagTeam_SeatMemberCount(s32 p, s32 sideMembers);
 s32 TagTeam_SeatMember(s32 p, s32 i); /* the side's member that the fighter's own member i is */
 
+/* The extra fighters' models and objects (seats 2 and up; seats 0 and 1 are the game's own, per side):
+   requested with the battle's first load, created after it, given back at the battle's end. */
+void TagTeam_RequestSeatModels(void);          /* battle_load.c, with the leaders' models */
+void TagTeam_CreateSeatObjects(void);          /* battle_work.c, after the leaders' objects */
+void TagTeam_EndBattle(void);                  /* battle.c, Battle_Term */
+s32 TagTeam_SeatObjId(s32 p, s32 sideObjId);   /* the fighter's object: its own for an extra seat, else sideObjId */
+u8 *TagTeam_CharaWork(s32 objId);              /* an extra fighter's object's work buffer, NULL for any other */
+
 #endif
