@@ -1,5 +1,6 @@
 #include "common.h"
 #include "battle/battle.h"
+#include "battle/tag_team.h"
 #include "sys/adx.h"
 #include "sys/dma.h"
 #include "sys/job.h"
@@ -151,7 +152,11 @@ s32 Battle_Init(void) {
     Battle_Load();
     StgFx_Init();
     StgModel_InitStage();
+#ifdef PORT
+    BtlChar_AllocAll(TagTeam_Fighters()); /* 2, or a Tag Team battle's fighters (battle/tag_team.h) */
+#else
     BtlChar_AllocAll(2);
+#endif
     BtlAiMgr_Init();
     BtlCam_Init();
     StgNav_Init();

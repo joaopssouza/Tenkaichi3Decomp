@@ -28,6 +28,19 @@ s32 TagTeam_Fighters(void) {
     return sMode == TAG_MODE_NONE ? 2 : sFighters;
 }
 
+s32 TagTeam_SeatSide(s32 p) {
+    return sMode == TAG_MODE_NONE ? p : (p & 1);
+}
+
+s32 TagTeam_SeatMemberCount(s32 p, s32 sideMembers) {
+    (void)p;
+    return sMode == TAG_MODE_NONE ? sideMembers : 1;
+}
+
+s32 TagTeam_SeatMember(s32 p, s32 i) {
+    return sMode == TAG_MODE_NONE ? i : (p >> 1) + i;
+}
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 /* The fighters of the battle on now, for the tests (test/tag_offline.test.js): 0 fighters outside a battle. */

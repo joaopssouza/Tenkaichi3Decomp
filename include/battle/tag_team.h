@@ -18,4 +18,10 @@ void TagTeam_Set(s32 mode, s32 fighters);
 s32 TagTeam_Mode(void);
 s32 TagTeam_Fighters(void); /* 2 when the mode is off */
 
+/* Seats: fighter p is gBtlChars->chars[p]. Its side (team) is p & 1, and it fights as member p >> 1 of that side's
+   setup, alone (one member). With the mode off: side p, every member of the side, as the game has it. */
+s32 TagTeam_SeatSide(s32 p);
+s32 TagTeam_SeatMemberCount(s32 p, s32 sideMembers);
+s32 TagTeam_SeatMember(s32 p, s32 i); /* the side's member that the fighter's own member i is */
+
 #endif
