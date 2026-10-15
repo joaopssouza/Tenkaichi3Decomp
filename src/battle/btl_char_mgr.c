@@ -244,20 +244,24 @@ void BtlChar_BindObject(BtlMgrChr *chr) {
     BtlMgrObj *obj;
     s32 i;
 
-    chr->objId = BattleSide_GetObjId(chr->side);
+    chr->objId = Battle_GetFighterObjId(chr->index);
     obj = BtlChar_GetObj(chr);
     chr->unk980 = -1;
     for (i = 0; i < 3; i++) {
-        if (obj->file[i] != NULL) {
+        if (obj != NULL && obj->file[i] != NULL) {
             chr->objTbl[i] = FILE_TABLE(obj->file[i], 3);
         }
     }
     BtlChar_ClearFlag(chr, 0xBE);
     BtlChar_ClearFlagRange(chr, 0x98, 0x99);
-    BtlObj_InitChains(obj);
+    if (obj != NULL) {
+        BtlObj_InitChains(obj);
+    }
     memset(chr->unkE00, 0, 0x40);
     BtlStat_Reset(chr);
-    OBJ_WORD_18028(obj) = 0;
+    if (obj != NULL && obj->unk1660 != NULL) {
+        OBJ_WORD_18028(obj) = 0;
+    }
 }
 
 /* Copies one member's seven bonus levels from the battle setup. */
@@ -313,6 +317,9 @@ void BtlChar_Reset(BtlMgrChr *chr) {
     BattleResult *res;
 
     BtlChar_SetStage(chr, BTL_CHR_STAGE_RESET);
+    if (BtlChar_GetCount() > 2 && chr->index >= 2) {
+        chr->curMember = 1;
+    }
     chr->optA = BattleSide_GetOptionA(side);
     chr->optBOff = BattleSide_GetOptionB(side) == 0;
     chr->padFlagA = (gSaveData->flags & (2 << chr->pad)) != 0;
@@ -1339,6 +1346,11 @@ void BtlChar_ResetAll(void) {
         }
         chr->index = i;
         chr->pad = pad;
+        if (BtlChar_GetCount() > 2 && i >= 2) {
+            chr->curMember = 1;
+        } else {
+            chr->curMember = 0;
+        }
         BtlChar_BindObject(chr);
         BtlChar_Reset(chr);
     }

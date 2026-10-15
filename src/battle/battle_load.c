@@ -532,8 +532,21 @@ s32 BtlLoad_StepInitial(BtlJob *job) {
         job->state++;
         break;
     case 4:
-        BattleSide_SetModelSlot(0, BtlObj_RequestCharaModel(0, BattleSide_GetStartChara(0), BattleSide_GetStartCostume(0), BattleSide_GetStartVariant(0)));
-        BattleSide_SetModelSlot(1, BtlObj_RequestCharaModel(1, BattleSide_GetStartChara(1), BattleSide_GetStartCostume(1), BattleSide_GetStartVariant(1)));
+        Battle_SetFighterModelSlot(0, BtlObj_RequestCharaModel(0, BattleSide_GetStartChara(0), BattleSide_GetStartCostume(0), BattleSide_GetStartVariant(0)));
+        Battle_SetFighterModelSlot(1, BtlObj_RequestCharaModel(1, BattleSide_GetStartChara(1), BattleSide_GetStartCostume(1), BattleSide_GetStartVariant(1)));
+        if (Battle_IsTagTeam()) {
+            BattleMember *m0 = BattleSide_GetMember(0, 1);
+            BattleMember *m1 = BattleSide_GetMember(1, 1);
+            s32 chara0 = (m0 != NULL && m0->chara >= 0) ? m0->chara : BattleSide_GetStartChara(0);
+            s32 cost0  = (m0 != NULL) ? m0->costume : 0;
+            s32 var0   = (m0 != NULL) ? m0->variant : 0;
+            s32 chara1 = (m1 != NULL && m1->chara >= 0) ? m1->chara : BattleSide_GetStartChara(1);
+            s32 cost1  = (m1 != NULL) ? m1->costume : 0;
+            s32 var1   = (m1 != NULL) ? m1->variant : 0;
+
+            Battle_SetFighterModelSlot(2, BtlObj_RequestCharaModel(2, chara0, cost0, var0));
+            Battle_SetFighterModelSlot(3, BtlObj_RequestCharaModel(3, chara1, cost1, var1));
+        }
 #ifdef PORT
         {
             /* PC build: the buffer is the game's own size unless a stage added from outside the disc is larger
@@ -1934,6 +1947,41 @@ s32 BattleSide_GetMemberVariant(s32 side, s32 idx) {
 /* Team size of the side. */
 s32 BattleSide_GetMemberCount(s32 side) {
     return Side(side)->memberCount;
+}
+
+static s32 sFighterObjId[4] = { -1, -1, -1, -1 };
+static s32 sFighterModelSlot[4] = { -1, -1, -1, -1 };
+
+s32 Battle_GetFighterObjId(s32 index) {
+    if (index >= 0 && index < 4 && sFighterObjId[index] >= 0) {
+        return sFighterObjId[index];
+    }
+    return BattleSide_GetObjId(index & 1);
+}
+
+void Battle_SetFighterObjId(s32 index, s32 objId) {
+    if (index >= 0 && index < 4) {
+        sFighterObjId[index] = objId;
+    }
+    if (index < 2) {
+        BattleSide_SetObjId(index, objId);
+    }
+}
+
+s32 Battle_GetFighterModelSlot(s32 index) {
+    if (index >= 0 && index < 4 && sFighterModelSlot[index] >= 0) {
+        return sFighterModelSlot[index];
+    }
+    return BattleSide_GetModelSlot(index & 1);
+}
+
+void Battle_SetFighterModelSlot(s32 index, s32 slot) {
+    if (index >= 0 && index < 4) {
+        sFighterModelSlot[index] = slot;
+    }
+    if (index < 2) {
+        BattleSide_SetModelSlot(index, slot);
+    }
 }
 
 /* Object id of the side's fighter (argument of BtlObj_Get). */

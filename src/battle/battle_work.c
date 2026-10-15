@@ -103,8 +103,12 @@ s32 Battle_Load(void) {
     BtlScript_Init();
     BtlLoad_PushInitialJob();
     Load_RunBlocking();
-    BattleSide_SetObjId(0, BtlObj_CreateChara(BattleSide_GetModelSlot(0)));
-    BattleSide_SetObjId(1, BtlObj_CreateChara(BattleSide_GetModelSlot(1)));
+    Battle_SetFighterObjId(0, BtlObj_CreateChara(Battle_GetFighterModelSlot(0)));
+    Battle_SetFighterObjId(1, BtlObj_CreateChara(Battle_GetFighterModelSlot(1)));
+    if (Battle_IsTagTeam()) {
+        Battle_SetFighterObjId(2, BtlObj_CreateChara(Battle_GetFighterModelSlot(2)));
+        Battle_SetFighterObjId(3, BtlObj_CreateChara(Battle_GetFighterModelSlot(3)));
+    }
     return 1;
 }
 

@@ -437,12 +437,16 @@ BtlObj *BtlObj_Get(s32 id) {
     return gBtlObjTbl[id];
 }
 
+static u8 sExtraCharaWork[4][0x1A0C0];
+
 /* Returns the big work buffer that goes with a fighter object id. */
 u8 *BtlObj_GetCharaWork(u32 id) {
-    BtlObjTable *tbl = BtlObj_GetTable();
-
-    if (id < 3) {
+    if (id < 2) {
+        BtlObjTable *tbl = BtlObj_GetTable();
         return tbl->charaWork[id];
+    }
+    if (id < 4) {
+        return sExtraCharaWork[id];
     }
     return NULL;
 }
@@ -518,7 +522,7 @@ s32 BtlObj_RequestCharaModel(s32 side, s32 chara, s32 costume, s32 variant) {
     } else {
         model = chara * 10 + costume + 0x590;
     }
-    return BtlRes_Request(1, model, chara * 10 + 0x598, chara * 10 + 0x599);
+    return BtlRes_Request(side < 2 ? 1 : 0, model, chara * 10 + 0x598, chara * 10 + 0x599);
 }
 
 /* Returns the work block. */
@@ -540,6 +544,7 @@ void BtlRes_CommitReloadEx(void) {
 void BtlObj_Init(s32 prealloc) {
     gBtlObjWork = Heap_Alloc(BTL_OBJ_WORK_SIZE, 0x20, 0, HEAP_ANY);
     memset(gBtlObjWork, 0, BTL_OBJ_WORK_SIZE);
+    memset(sExtraCharaWork, 0, sizeof(sExtraCharaWork));
     BtlRes_Init(prealloc);
     BtlObj_InitTable();
     BtlObjPoolE0_Init();

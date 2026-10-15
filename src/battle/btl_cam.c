@@ -335,7 +335,24 @@ void BtlCam_Term(void) {
 /* Per frame: copies one side's fighter camera pose and priority into the selected view and builds it. */
 void BtlCam_UpdateView(s32 side) {
     BtlCamView *view = gBtlCam->cur;
-    s32 objId = BattleSide_GetObjId(side);
+    s32 objId = Battle_GetFighterObjId(side);
+
+#if defined(PORT) || defined(__EMSCRIPTEN__) || !defined(TARGET_PS2)
+    extern int Port_NetActive(void);
+    extern int Port_NetMe(void);
+    if (side == 0 && (Port_NetActive() || getenv("BT3_NET_PLAYER") != NULL)) {
+        s32 me = Port_NetMe();
+        if (getenv("BT3_NET_PLAYER") != NULL) {
+            me = atoi(getenv("BT3_NET_PLAYER"));
+        }
+        if (me >= 0 && me < 4) {
+            s32 myObj = Battle_GetFighterObjId(me);
+            if (myObj >= 0) {
+                objId = myObj;
+            }
+        }
+    }
+#endif
 
     if (Battle_IsSplitScreen()) {
         BtlCam_SetLayout(1, 0);

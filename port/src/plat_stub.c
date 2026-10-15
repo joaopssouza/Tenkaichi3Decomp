@@ -154,7 +154,7 @@ static void vblank_wait(void) {
 }
 
 #undef next
-static unsigned char sPadLast[2][18]; /* (defined with the pads below) */
+static unsigned char sPadLast[4][18]; /* (defined with the pads below) */
 void Port_VBlank(void) {
 #ifdef __EMSCRIPTEN__
     { /* browser build: how fast the game runs (every 300 vertical blanks: blanks per second of real time) */

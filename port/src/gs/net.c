@@ -140,6 +140,7 @@ void Port_NetNameSet(const char *name) {
    seconds, none). One word: type | dp << 4 | time << 8. The host's travels with its other choices (T_HELLO_ACK,
    T_CONFIG); headless.c applies it on both sides when the session enters the versus mode. */
 static uint32_t sRules = 3u << 8; /* single battle, 240 seconds: the game's defaults */
+static int sNumPlayers = 2; /* 2 for 1v1 / standard, 4 for Tag Team 2v2 */
 
 void Port_NetRulesSet(int type, int dp, int time) {
     sRules = (uint32_t)(type < 0 || type > 3 ? 0 : type) | (uint32_t)(dp < 0 || dp > 2 ? 0 : dp) << 4 | (uint32_t)(time < 0 || time > 4 ? 3 : time) << 8;
@@ -181,7 +182,6 @@ static int lock_delay(int rttMs) {
 
 static int sMode = -1; /* 0 off, 1 host, 2 join */
 static int sSock = -1, sMe, sDelay = 2, sConnected, sLoss, sLagMs;
-static int sNumPlayers = 2; /* 2 for 1v1 / standard, 4 for Tag Team 2v2 */
 static int sPlayerActive[4] = {0, 0, 0, 0}; /* 1 for human players present in the session */
 static struct sockaddr_in sPeer;
 static uint8_t sIn[4][RING][PAD]; /* [player][blank % RING] - up to 4 fighters */
