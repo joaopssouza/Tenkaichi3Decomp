@@ -16,6 +16,20 @@ s32 BtlPool_CalcArenaSize(void);
 void BtlPool_CarveArenas(void);
 u8 *BtlPool_InitSlot(BtlPoolSlot *slot, s32 size, u8 *mem);
 
+#ifdef PORT
+/* The port's Tag Team: characters 2 and 3 get effect pools of their own, slots 9 and 10, the size of the game's
+   per-character pools 7 and 8 (EftChar_SetPool, eft_q.c), from the port's extra memory (battle/tag_team.h). The
+   game's 9 slots are a fixed table: these two are kept beside it. */
+#include "battle/tag_team.h"
+#define TAG_POOL_FIRST BTL_POOL_SLOT_COUNT
+#define TAG_POOL_SIZE 0x19000
+extern unsigned Port_ExtraAlloc(unsigned size, unsigned align);
+static BtlPoolSlot sTagPool[TAG_FIGHTERS_MAX - 2];
+#define POOL_SLOT(slot) ((slot) >= TAG_POOL_FIRST ? &sTagPool[(slot) - TAG_POOL_FIRST] : &gBtlPool->slots[slot])
+#else
+#define POOL_SLOT(slot) (&gBtlPool->slots[slot])
+#endif
+
 /* Allocates the pool manager and the memory behind every arena slot. */
 void BtlPool_Init(s32 arg) {
     s32 size;
@@ -30,6 +44,18 @@ void BtlPool_Init(s32 arg) {
         memset(ARENA_MEM, 0, size);
         BtlPool_CarveArenas();
     }
+#ifdef PORT
+    {
+        s32 k;
+        for (k = 0; k + 2 < TagTeam_Fighters(); k++) {
+            u8 *mem = (u8 *)Port_ExtraAlloc(TAG_POOL_SIZE, 32);
+            if (mem != NULL) {
+                BtlPool_InitSlot(&sTagPool[k], TAG_POOL_SIZE, mem);
+                gBtlPool->arenaMask |= BTL_POOL_ARENA_BIT(TAG_POOL_FIRST + k);
+            }
+        }
+    }
+#endif
 }
 
 /* Frees the arena memory and the pool manager. */
@@ -47,7 +73,7 @@ void BtlPool_Term(void) {
 /* Allocates size bytes (rounded up to 32) from a slot: bump allocation for an arena, the heap otherwise. */
 void *BtlPool_Alloc(s32 slot, s32 size) {
     s32 aligned = BtlPool_AlignUp32(size);
-    BtlPoolSlot *s = &gBtlPool->slots[slot];
+    BtlPoolSlot *s = POOL_SLOT(slot);
     void *ptr;
 
     if (gBtlPool->arenaMask & BTL_POOL_ARENA_BIT(slot)) {
@@ -72,7 +98,7 @@ void BtlPool_Free(s32 slot, void *ptr) {
 
 /* Rewinds an arena slot to empty. */
 void BtlPool_Reset(s32 slot) {
-    BtlPoolSlot *s = &gBtlPool->slots[slot];
+    BtlPoolSlot *s = POOL_SLOT(slot);
 
     if (gBtlPool->arenaMask & BTL_POOL_ARENA_BIT(slot)) {
         s->cur = s->base;

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/btl_seq.h"
 #include "battle/battle_setup.h"
 #include "battle/battle_work.h"
@@ -1280,6 +1281,25 @@ s32 BtlSeq_CheckBattleEnd(void) {
         result->reason = BTL_REASON_FLAG7;
         return 1;
     }
+#ifdef PORT
+    {
+        s32 side;
+        if (TagTeam_FfaDecided(&side)) { /* a free for all: the last one standing (battle/tag_team.h) */
+            result->reason = BTL_REASON_KO;
+            if (side == 0) {
+                result->winner = BTL_RESULT_WIN_P1;
+            } else if (side == 1) {
+                result->winner = BTL_RESULT_WIN_P2;
+            } else {
+                BtlSeq_JudgeByHealth(result);
+            }
+            return 1;
+        }
+        if (TagTeam_Mode() == TAG_MODE_FFA) {
+            return 0;
+        }
+    }
+#endif
     if (BtlCtrl_IsTeamDead(0) && BtlCtrl_IsTeamDead(1)) {
         result->reason = BTL_REASON_KO;
         BtlSeq_JudgeByHealth(result);

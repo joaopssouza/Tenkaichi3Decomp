@@ -254,6 +254,9 @@ s32 Battle_Draw(void) {
     Gfx_AddDefaultEnv();
     BtlScene_Draw(1);
     Ot_Draw();
+#ifdef PORT
+    TagTeam_DrawOverheadBars(); /* (battle/tag_team.h) */
+#endif
     Dbg_ProfColor(prof, 0x804040FF);
     Dbg_ProfMark(prof);
     Gfx_MarkPass(3);
@@ -309,6 +312,9 @@ s32 Battle_DrawSplit(void) {
         BtlCam_ApplyView(1);
         BtlScene_Draw(i == 0);
         Ot_Draw();
+#ifdef PORT
+        TagTeam_DrawOverheadBars();
+#endif
     }
     Dbg_ProfColor(gBattleProf, 0x804040FF);
     Dbg_ProfMark(gBattleProf);

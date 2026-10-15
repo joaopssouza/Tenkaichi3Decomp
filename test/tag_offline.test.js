@@ -115,6 +115,74 @@ test('BT3_TAG=teams:4 starts each partner beside its leader, on the ground (the 
   }
 });
 
+test('BT3_TAG=ffa:4 fighters hurt each other: at least three of the four take damage', { skip, timeout: (SECONDS * 3 + 90) * 1000 }, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'ffa:4' } });
+  try {
+    const start = await afterFighting(g, 1);
+    const deadline = Date.now() + SECONDS * 3 * 1000;
+    let hurt = 0, f = [];
+    while (Date.now() < deadline && hurt < 3) {
+      await g.page.waitForTimeout(5000);
+      assert.strictEqual(g.fatal(), null, `the program stopped: ${g.fatal()}`);
+      f = await fighters(g);
+      hurt = f.filter((x, i) => x.hp < start[i].hp).length;
+    }
+    assert.ok(hurt >= 3, `only ${hurt} of the four took damage: ${f.map((x) => x.hp)}`);
+  } finally {
+    await g.close();
+  }
+});
+
+// the battle up to its decision (sequence state 4, finish, or later); returns the fighters and the winning side
+async function untilDecided(g) {
+  const deadline = Date.now() + SECONDS * 3 * 1000;
+  while (Date.now() < deadline) {
+    await g.page.waitForTimeout(3000);
+    assert.strictEqual(g.fatal(), null, `the program stopped: ${g.fatal()}`);
+    const [seq, winner] = await g.evaluate(() => [Module._Web_BattleSeq(), Module._Web_BattleWinner()]);
+    if (seq >= 4) return { f: await fighters(g), winner };
+  }
+  assert.fail(`the battle was not decided in ${SECONDS * 3} s`);
+}
+
+test('teams:4 ends only when both fighters of a side are down, and that side loses', { skip, timeout: (SECONDS * 3 + 90) * 1000 }, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'teams:4', BT3_TAG_HP: '4' } });
+  try {
+    const { f, winner } = await untilDecided(g);
+    const down = (side) => f.filter((x, i) => (i & 1) === side).every((x) => x.hp <= 0);
+    assert.ok(down(0) || down(1), `a side has both fighters down: ${f.map((x) => x.hp)}`);
+    assert.strictEqual(winner, down(1) ? 0 : 1, `the side still standing wins (winner ${winner}, hp ${f.map((x) => x.hp)})`);
+  } finally {
+    await g.close();
+  }
+});
+
+test('ffa:4 ends with at most one fighter standing', { skip, timeout: (SECONDS * 3 + 90) * 1000 }, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'ffa:4', BT3_TAG_HP: '4' } });
+  try {
+    const { f } = await untilDecided(g);
+    assert.ok(f.filter((x) => x.hp > 0).length <= 1, `standing at the end: ${f.map((x) => x.hp)}`);
+  } finally {
+    await g.close();
+  }
+});
+
+test('teams:4 draws health bars over the other fighters (screenshot in the temp folder)', opts, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'teams:4' } });
+  try {
+    await afterFighting(g, 30);
+    let most = 0;
+    for (let k = 0; k < 10 && most < 3; k++) {
+      await g.page.waitForTimeout(1000);
+      most = Math.max(most, await g.evaluate(() => Module._Web_OverheadBars()));
+    }
+    await g.page.screenshot({ path: require('path').join(require('os').tmpdir(), 'bt3_tag_bars.png') });
+    assert.ok(most >= 1, `bars drawn: ${most}`);
+  } finally {
+    await g.close();
+  }
+});
+
 test('an invalid BT3_TAG is said and ignored: the usual two-fighter battle', opts, async () => {
   const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'ffa:9' } });
   try {

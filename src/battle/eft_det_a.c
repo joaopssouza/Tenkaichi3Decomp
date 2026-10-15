@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/eft_det_a.h"
 
 /*
@@ -714,6 +715,19 @@ s32 BtlBodyHit_Test(EftDetObj *atk, EftDetObj *def) {
 void BtlBodyHit_Update(void) {
     EftDetObj *a;
 
+#ifdef PORT
+    if (TagTeam_Mode() != TAG_MODE_NONE && TagTeam_FighterCount() > 0) { /* every fighter against each enemy (battle/tag_team.h) */
+        s32 p, k, count;
+        s32 enemy[TAG_FIGHTERS_MAX];
+        for (p = 0; p < TagTeam_FighterCount(); p++) {
+            count = TagTeam_Enemies(TagTeam_FighterObjId(p), enemy);
+            for (k = 0; k < count; k++) {
+                BtlBodyHit_Test(BtlObj_Get(TagTeam_FighterObjId(p)), BtlObj_Get(enemy[k]));
+            }
+        }
+        return;
+    }
+#endif
     a = BtlObj_Get(BattleSide_GetObjId(0));
     BtlBodyHit_Test(a, BtlObj_Get(BattleSide_GetObjId(1)));
     a = BtlObj_Get(BattleSide_GetObjId(1));
@@ -948,6 +962,63 @@ void EftDet_FighterPass(void) {
     EftDetRec *rec;
     s32 i;
 
+#ifdef PORT
+    list = EftHit_GetList();
+    for (i = 0; i < list->count; i++) {
+        rec = &list->rec[i];
+        if (EftHit_CanHit(rec, 1)) {
+            s32 target = list->rec[i].objId ^ 1;
+            s32 ok;
+            s32 hit;
+            s32 enemy[TAG_FIGHTERS_MAX];
+            s32 count = TagTeam_Enemies(list->rec[i].objId, enemy);
+            EftDetObj *obj;
+
+            if (count >= 0) { /* a Tag Team battle: the attack may hit any enemy, its pair first (battle/tag_team.h) */
+                s32 k;
+                hit = 0;
+                for (k = 0; k < count && !hit; k++) {
+                    if (test[list->rec[i].shape.type](BtlObj_Get(enemy[k]), &rec->shape)) {
+                        target = enemy[k];
+                        hit = 1;
+                    }
+                }
+            } else {
+                if (target == 0) {
+                    obj = BtlObj_Get(BattleSide_GetObjId(0));
+                } else {
+                    obj = BtlObj_Get(BattleSide_GetObjId(1));
+                }
+                hit = test[list->rec[i].shape.type](obj, &rec->shape);
+            }
+            if (hit) {
+                ok = 0;
+                if (!(list->rec[i].shape.hitFlags & EFT_DET_HIT_STAGE) ||
+                    list->rec[i].shape.dist < list->rec[i].shape.stageDist) {
+                    ok = 1;
+                }
+                if (ok) {
+                    list->rec[i].shape.hitFlags |= EFT_DET_HIT_FIGHTER;
+                    EftHit_MarkLastHit(rec);
+                    if (BtlColl_TryDodge(target, rec)) {
+                        continue;
+                    }
+                    if (BtlColl_TryDeflect(target, rec)) {
+                        EftHit_SetTaskFlag(i, 0x40, rec->shape.contact);
+                    } else if (BtlColl_TryReflect(target, rec)) {
+                        EftHit_SetTaskFlag(i, 0x80, rec->shape.contact);
+                    } else if (BtlColl_TryAbsorb(target, rec)) {
+                        EftHit_SetTaskFlag(i, 0x20, rec->shape.contact);
+                    } else if (EftHit_IsMultiHit(rec)) {
+                        EftDet_HitFighterMulti(rec, target, i);
+                    } else {
+                        EftDet_HitFighter(rec, target, i);
+                    }
+                }
+            }
+        }
+    }
+#else
     list = EftHit_GetList();
     for (i = 0; i < list->count; i++) {
         rec = &list->rec[i];
@@ -988,6 +1059,7 @@ void EftDet_FighterPass(void) {
             }
         }
     }
+#endif
 }
 
 /* Two type 0 shapes: both spheres swept over the frame. On contact stores each one's centre and contact point. */

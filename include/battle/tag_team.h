@@ -34,6 +34,12 @@ struct Vec4;
 s32 TagTeam_StartPlace(s32 p, struct Vec4 *pos, struct Vec4 *rot); /* an extra seat's start (the shallow V); returns the zone */
 s32 TagTeam_SeatObjId(s32 p, s32 sideObjId);   /* the fighter's object: its own for an extra seat, else sideObjId */
 u8 *TagTeam_CharaWork(s32 objId);
+void TagTeam_SetHealthPct(s32 pct);             /* tests: every member's starting health, percent */
+s32 TagTeam_TeamDead(s32 side, s32 gameDead);    /* the side's every fighter down (gameDead: the game's own answer) */
+s32 TagTeam_FfaDecided(s32 *winnerSide);         /* free for all: at most one standing */
+void TagTeam_SetLocalSeat(s32 p);                 /* the fighter this screen belongs to */
+s32 TagTeam_LocalSeat(void);
+void TagTeam_DrawOverheadBars(void);              /* battle.c, after each view's Ot_Draw */
 s32 TagTeam_FighterCount(void);                /* fighters of the battle on now, 0 outside one */
 s32 TagTeam_FighterObjId(s32 p);               /* fighter p's object, -1 if none */
 s32 TagTeam_Enemies(s32 objId, s32 *out); /* objects objId may hit (up to TAG_FIGHTERS_MAX - 1), -1: not a fighter */

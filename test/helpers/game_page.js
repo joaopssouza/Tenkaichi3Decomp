@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const CHROME = process.env.BT3_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 // what the port prints when the program cannot go on (port/src/plat_mem.c, runtime.html's onAbort)
-const FATAL = /does not fit in the game heap|The game stopped|no room below|cannot run/;
+const FATAL = /does not fit in the game heap|The game stopped|no room below|cannot run|RuntimeError|memory access out of bounds|unreachable executed/;
 
 async function openGame(url, { env = {} } = {}) {
   if (!fs.existsSync(CHROME)) throw new Error(`Chrome not found at ${CHROME} (set BT3_CHROME)`);
@@ -23,7 +23,9 @@ async function openGame(url, { env = {} } = {}) {
   page.on('console', (m) => printed.push(m.text()));
   page.on('pageerror', (e) => printed.push('page error: ' + e.message));
   const u = new URL(url);
-  const pairs = Object.entries(env).map(([k, v]) => `${k}=${v}`);
+  // the game drawn at its own resolution (BT3_SCALE=1, port/src/gs/gs_draw.c): the headless browser draws in software,
+  // and at the default 2x the game ran at a quarter of the speed; drawing does not change the game's state
+  const pairs = Object.entries(Object.assign({ BT3_SCALE: '1' }, env)).map(([k, v]) => `${k}=${v}`);
   if (pairs.length) u.searchParams.set('env', pairs.join(','));
   await page.goto(u.toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
   return {

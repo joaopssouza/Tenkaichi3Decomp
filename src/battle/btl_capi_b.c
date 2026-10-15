@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/btl_capi_b.h"
 
 /*
@@ -2159,7 +2160,11 @@ s32 BtlCtrl_IsTeamDead(s32 player) {
                 break;
             }
         }
+#ifdef PORT
+        return TagTeam_TeamDead(player, dead); /* a Tag Team side: all its fighters (battle/tag_team.h) */
+#else
         return dead;
+#endif
     }
     return 0;
 }

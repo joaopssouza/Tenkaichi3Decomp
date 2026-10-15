@@ -830,12 +830,20 @@ void EftChar_Update(EftQTask *task) {
 
 /* Makes the character's pool (7 for character 0, 8 for the others) the current one. */
 void EftChar_SetPool(s32 chr) {
+#ifdef PORT
+    BtlPool_SetCurrent(chr == 0 ? 7 : chr == 1 ? 8 : 9 + (chr - 2)); /* Tag Team characters 2, 3: pools 9, 10 (btl_pool.c) */
+#else
     BtlPool_SetCurrent(chr == 0 ? 7 : 8);
+#endif
 }
 
 /* Empties the character's pool. */
 void EftChar_ResetPool(s32 chr) {
+#ifdef PORT
+    BtlPool_Reset(chr == 0 ? 7 : chr == 1 ? 8 : 9 + (chr - 2)); /* Tag Team characters 2, 3: pools 9, 10 (btl_pool.c) */
+#else
     BtlPool_Reset(chr == 0 ? 7 : 8);
+#endif
 }
 
 /* Creates the manager task of one kind for a character; its init gets {character, kind}. */

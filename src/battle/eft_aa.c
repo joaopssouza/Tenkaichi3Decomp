@@ -109,6 +109,16 @@ extern EftAaOtSlot *gOtLast;
 extern EftGroundWork *gEftGndDust;
 extern EftDelaySeMgr *gEftDelaySe;
 extern EftCharSlots *gEftCharSlot;
+#ifdef PORT
+/* The port's Tag Team: the fighters with objects 2 and 3 keep their effect slots in a second table, at objId & 1
+   (battle/tag_team.h); objects 0 and 1 use the game's. */
+static EftCharSlots sTagSlots;
+#define CHAR_SLOTS(objId) ((objId) < 2 ? gEftCharSlot : &sTagSlots)
+#define CHAR_SLOT_I(objId) ((objId) & 1)
+#else
+#define CHAR_SLOTS(objId) gEftCharSlot
+#define CHAR_SLOT_I(objId) (objId)
+#endif
 extern EftBladeMgr *gEftBlade;
 extern EftBlind *gEftBlind;
 extern void *gEftAnimPartList;
@@ -660,6 +670,9 @@ void EftDelaySe_Reset(EftAaTask *task) {
 void EftCharSlotMgr_Init(void) {
     gEftCharSlot = BtlPool_Alloc(BtlPool_GetCurrent(), sizeof(EftCharSlots));
     memset(gEftCharSlot, 0, sizeof(EftCharSlots));
+#ifdef PORT
+    memset(&sTagSlots, 0, sizeof(EftCharSlots));
+#endif
 }
 
 /* Manager term. */
@@ -678,7 +691,7 @@ void EftCharSlotMgr_Reset(void) {
 
 /* Records the kind-0 effect task of a fighter. */
 void EftCharSlot_Set0(s32 objId, void *task) {
-    EftCharSlot *s = &gEftCharSlot->kind0[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind0[CHAR_SLOT_I(objId)];
 
     if (task != NULL) {
         s->task = task;
@@ -688,7 +701,7 @@ void EftCharSlot_Set0(s32 objId, void *task) {
 
 /* Empties the kind-0 slot of a fighter. */
 void EftCharSlot_Clear0(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind0[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind0[CHAR_SLOT_I(objId)];
 
     s->task = NULL;
     s->on = 0;
@@ -696,12 +709,12 @@ void EftCharSlot_Clear0(s32 objId) {
 
 /* The kind-0 effect task of a fighter, or NULL. */
 void *EftCharSlot_Get0(s32 objId) {
-    return gEftCharSlot->kind0[objId].task;
+    return CHAR_SLOTS(objId)->kind0[CHAR_SLOT_I(objId)].task;
 }
 
 /* Records the kind-1 effect task of a fighter. */
 void EftCharSlot_Set1(s32 objId, void *task) {
-    EftCharSlot *s = &gEftCharSlot->kind1[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind1[CHAR_SLOT_I(objId)];
 
     if (task != NULL) {
         s->task = task;
@@ -711,7 +724,7 @@ void EftCharSlot_Set1(s32 objId, void *task) {
 
 /* Empties the kind-1 slot of a fighter. */
 void EftCharSlot_Clear1(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind1[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind1[CHAR_SLOT_I(objId)];
 
     s->task = NULL;
     s->on = 0;
@@ -719,14 +732,14 @@ void EftCharSlot_Clear1(s32 objId) {
 
 /* The kind-1 effect task of a fighter, or NULL. */
 void *EftCharSlot_Get1(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind1[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind1[CHAR_SLOT_I(objId)];
 
     return s->task;
 }
 
 /* Records the kind-2 effect task of a fighter. */
 void EftCharSlot_Set2(s32 objId, void *task) {
-    EftCharSlot *s = &gEftCharSlot->kind2[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind2[CHAR_SLOT_I(objId)];
 
     if (task != NULL) {
         s->task = task;
@@ -736,7 +749,7 @@ void EftCharSlot_Set2(s32 objId, void *task) {
 
 /* Empties the kind-2 slot of a fighter. */
 void EftCharSlot_Clear2(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind2[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind2[CHAR_SLOT_I(objId)];
 
     s->task = NULL;
     s->on = 0;
@@ -744,14 +757,14 @@ void EftCharSlot_Clear2(s32 objId) {
 
 /* The kind-2 effect task of a fighter, or NULL. */
 void *EftCharSlot_Get2(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind2[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind2[CHAR_SLOT_I(objId)];
 
     return s->task;
 }
 
 /* Records the kind-3 effect task of a fighter. */
 void EftCharSlot_Set3(s32 objId, void *task) {
-    EftCharSlot *s = &gEftCharSlot->kind3[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind3[CHAR_SLOT_I(objId)];
 
     if (task != NULL) {
         s->task = task;
@@ -761,7 +774,7 @@ void EftCharSlot_Set3(s32 objId, void *task) {
 
 /* Empties the kind-3 slot of a fighter. */
 void EftCharSlot_Clear3(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind3[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind3[CHAR_SLOT_I(objId)];
 
     s->task = NULL;
     s->on = 0;
@@ -769,14 +782,14 @@ void EftCharSlot_Clear3(s32 objId) {
 
 /* The kind-3 effect task of a fighter, or NULL. */
 void *EftCharSlot_Get3(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->kind3[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->kind3[CHAR_SLOT_I(objId)];
 
     return s->task;
 }
 
 /* Records the drain glow task of a fighter (EftAbsorb_Start). */
 void EftCharSlot_SetAbsorb(s32 objId, void *task) {
-    EftCharSlot *s = &gEftCharSlot->absorb[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->absorb[CHAR_SLOT_I(objId)];
 
     if (task != NULL) {
         s->task = task;
@@ -786,7 +799,7 @@ void EftCharSlot_SetAbsorb(s32 objId, void *task) {
 
 /* Empties the drain glow slot of a fighter (EftAbsorb_Term). */
 void EftCharSlot_ClearAbsorb(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->absorb[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->absorb[CHAR_SLOT_I(objId)];
 
     s->task = NULL;
     s->on = 0;
@@ -794,7 +807,7 @@ void EftCharSlot_ClearAbsorb(s32 objId) {
 
 /* The drain glow task of a fighter, or NULL (EftAbsorb_Start / _Stop). */
 void *EftCharSlot_GetAbsorb(s32 objId) {
-    EftCharSlot *s = &gEftCharSlot->absorb[objId];
+    EftCharSlot *s = &CHAR_SLOTS(objId)->absorb[CHAR_SLOT_I(objId)];
 
     return s->task;
 }

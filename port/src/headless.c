@@ -136,6 +136,10 @@ static void tag_setup(void) {
             BattleSetup_SetMember(side, k, extra[side], 0, 0, CpuLevel_FromSetting(2), 100.0f, NULL);
         }
     }
+    if (getenv("BT3_TAG_HP") != NULL) { /* (tests: battles that end soon) */
+        extern void TagTeam_SetHealthPct(int pct);
+        TagTeam_SetHealthPct(atoi(getenv("BT3_TAG_HP")));
+    }
     BattleSetup_Finish();
     printf("bt3: tag team: %s, %d fighters\n", mode == TAG_MODE_TEAMS ? "teams" : "free for all", n);
 }
