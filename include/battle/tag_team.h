@@ -29,6 +29,9 @@ s32 TagTeam_SeatMember(s32 p, s32 i); /* the side's member that the fighter's ow
 void TagTeam_RequestSeatModels(void);          /* battle_load.c, with the leaders' models */
 void TagTeam_CreateSeatObjects(void);          /* battle_work.c, after the leaders' objects */
 void TagTeam_EndBattle(void);                  /* battle.c, Battle_Term */
+s32 TagTeam_Seat(void *chr);                   /* the fighter's seat p, -1 if it is not one */
+struct Vec4;
+s32 TagTeam_StartPlace(s32 p, struct Vec4 *pos, struct Vec4 *rot); /* an extra seat's start (the shallow V); returns the zone */
 s32 TagTeam_SeatObjId(s32 p, s32 sideObjId);   /* the fighter's object: its own for an extra seat, else sideObjId */
 u8 *TagTeam_CharaWork(s32 objId);              /* an extra fighter's object's work buffer, NULL for any other */
 

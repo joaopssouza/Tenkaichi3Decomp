@@ -99,6 +99,22 @@ test('BT3_TAG=teams:4 gives every fighter its own model and object, their work i
   }
 });
 
+test('BT3_TAG=teams:4 starts each partner beside its leader, on the ground (the mod\'s shallow V)', opts, async () => {
+  const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'teams:4' } });
+  try {
+    const f = await afterFighting(g, 1);
+    const dist = (a, b) => Math.hypot(a.pos[0] - b.pos[0], a.pos[2] - b.pos[2]);
+    for (const [leader, partner] of [[0, 2], [1, 3]]) {
+      const d = dist(f[leader], f[partner]);
+      assert.ok(d >= 60 && d <= 400, `fighter ${partner} is ${d.toFixed(0)} from its leader`);
+      assert.ok(f[partner].pos[1] > -600, `fighter ${partner} is on the ground (y ${f[partner].pos[1]})`);
+    }
+    assert.ok(dist(f[2], f[3]) > dist(f[0], f[1]) * 0.5, 'the partners are not on top of each other');
+  } finally {
+    await g.close();
+  }
+});
+
 test('an invalid BT3_TAG is said and ignored: the usual two-fighter battle', opts, async () => {
   const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'ffa:9' } });
   try {

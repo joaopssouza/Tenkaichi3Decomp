@@ -4,6 +4,9 @@
 #include "battle/btl_char_mgr.h"
 #include "battle/battle.h"
 #include <stdio.h>
+#include "battle/stg_a.h"
+
+extern f32 sqrtf(f32 x);
 #include "sys/math3d.h"
 
 extern s32 BtlCharApi_GetHp(s32 objId);
@@ -103,6 +106,63 @@ void TagTeam_EndBattle(void) {
     }
     sCreating = -1;
     Port_ExtraReset();
+}
+
+s32 TagTeam_Seat(void *chr) {
+    s32 p;
+
+    if (gBtlChars == NULL || gBtlChars->chars == NULL) {
+        return -1;
+    }
+    p = ((u8 *)chr - (u8 *)gBtlChars->chars) / (s32)sizeof(BtlMgrChr);
+    return p >= 0 && p < gBtlChars->count ? p : -1;
+}
+
+/* An extra fighter's start: the Tag Team mod's shallow V (spawn_placement.py, candidate_plan). forward points from
+   side 0's start to side 1's (reversed for side 1), right is across it; the wing is 0.6 of the gap between the two
+   starts, kept within 80..180. Rank r = p >> 1 stands on one flank (odd ranks left, even right), wing*0.6 behind its
+   leader; ranks 3 and 4 a second, deeper V. The candidates are tried in the mod's order; the first with ground under
+   it is taken (the mod's guest code also checks walls and the other fighters: not done here). */
+s32 TagTeam_StartPlace(s32 p, Vec4 *pos, Vec4 *rot) {
+    static const f32 cand[][2] = {{1.0f, 0.6f}, {0.8f, 0.8f}, {0.65f, 1.0f}, {1.0f, 1.2f}, {1.2f, 0.6f}, {0.65f, 1.5f},
+                                  {0.5f, 1.8f}, {1.4f, 1.0f}, {1.6f, 0.6f}, {0.8f, 2.0f}, {1.2f, 1.8f}, {1.6f, 1.6f}};
+    Vec4 a[2] __attribute__((aligned(16)));
+    Vec4 r[2] __attribute__((aligned(16)));
+    StgGroundHit hit;
+    s32 side = p & 1, rank = p >> 1, zone = 0, i;
+    f32 gap, fx, fz, wing, hand, row, lr, back;
+
+    BtlStage_GetStartPlace(0, &a[0], &r[0], 0);
+    BtlStage_GetStartPlace(1, &a[1], &r[1], 0);
+    *rot = r[side];
+    *pos = a[side];
+    gap = sqrtf((a[1].x - a[0].x) * (a[1].x - a[0].x) + (a[1].z - a[0].z) * (a[1].z - a[0].z));
+    if (rank == 0 || gap < 1.0f) {
+        return BtlStage_ProbeGround(-1, pos, &hit);
+    }
+    fx = (a[1].x - a[0].x) / gap * (side == 0 ? 1.0f : -1.0f);
+    fz = (a[1].z - a[0].z) / gap * (side == 0 ? 1.0f : -1.0f);
+    wing = gap * 0.6f;
+    wing = wing > 180.0f ? 180.0f : wing < 80.0f ? 80.0f : wing;
+    hand = (rank & 1) ? -1.0f : 1.0f;
+    row = (f32)((rank - 1) / 2);
+    for (i = 0; i < (s32)(sizeof(cand) / sizeof(cand[0])); i++) {
+        lr = hand * wing * cand[i][0];
+        back = wing * cand[i][1] + row * wing * 0.9f;
+        pos->x = a[side].x + fz * lr - fx * back; /* right = (fz, -fx) */
+        pos->z = a[side].z - fx * lr - fz * back;
+        pos->y = -700.0f;
+        pos->w = 1.0f;
+        zone = BtlStage_ProbeGround(-1, pos, &hit);
+        if (hit.y > -690.0f) {
+            pos->y = hit.y;
+            return zone;
+        }
+    }
+    *pos = a[side]; /* no ground anywhere in the V: a little behind the leader (the mod's last fallback) */
+    pos->x -= fx * 32.0f;
+    pos->z -= fz * 32.0f;
+    return BtlStage_ProbeGround(-1, pos, &hit);
 }
 
 s32 TagTeam_SeatObjId(s32 p, s32 sideObjId) {
