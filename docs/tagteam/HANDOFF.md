@@ -1,66 +1,59 @@
-# Tag Team — passagem para a próxima sessão (2026-10-15)
+# Tag Team — passagem para a próxima sessão (2026-10-16)
 
 Leia primeiro: `docs/superpowers/specs/2026-10-15-tag-team-design.md` (design aprovado),
-`docs/superpowers/plans/2026-10-15-tag-team-stage1b-engine.md` (plano em execução),
-`docs/tagteam/core-mechanism.md` (como o mod funciona), ledger `.superpowers/sdd/2026-10-15-tag-team-stage1b-engine/progress.md`.
+`docs/superpowers/plans/2026-10-15-tag-team-stage1b-engine.md` (plano da etapa 1B, concluído),
+`docs/tagteam/core-mechanism.md` (como o mod funciona), ledger `.superpowers/sdd/2026-10-15-tag-team-stage1b-engine/progress.md`
+(decisões de cada task, com o custo se estiverem erradas).
 O usuário pediu: executar tudo sem perguntar, usar REA nas partes difíceis, produção pode ser alterada (backup + teste de boot).
 
 ## Estado
 
-Feito e em produção: etapa 0 (boot, `ff0ae1f`), batalhas travando no load (`9d32f6e`).
-Feito e commitado, só em staging (ainda NÃO implantado): etapa 1A completa; etapa 1B tasks 1–5
-(assentos, memória extra 16 MB, modelo/objeto por assento, V raso, IA do 2º par + congelamento + oponente por par).
+Etapa 1 (lutas de 3–4 lutadores offline, sem menus: `BT3_TAG=teams:4|ffa:4`) **concluída e em produção** (2026-10-16,
+commit `1d32a95`; backup do build anterior em `optiplex:/home/jpadmin/bt3-backups/2026-10-16-tagteam-stage1`).
+Suíte no staging: `tag_offline` + `battle_demo` + `boot_smoke` 17/17 (inclui o "same fight" do 1v1).
+Os arquivos servidos em https://bt3.jpdev.uk têm o mesmo md5 do build testado.
 
-Em andamento (código no working tree, ver último commit para o que entrou):
-- Task 6 combate: `eft_det_a.c` testa golpe contra todos os inimigos e contato de corpo entre todos os pares
-  (`TagTeam_Enemies`). 
-- Efeitos por personagem: `BtlScene_SetCharCount(TagTeam_Fighters())` (btl_scene.c), segunda tabela de slots
-  (`eft_aa.c`, `CHAR_SLOTS`), pools de efeito 9/10 para personagens 2/3 (`btl_pool.c`, `eft_q.c EftChar_SetPool`).
-  Motivo: luta de 4 abortava com `memory access out of bounds` em EftCharge_Init / EftEmit_Spawn.
-- Task 7 morte/fim: `TagTeam_TeamDead` (btl_capi_b.c BtlCtrl_IsTeamDead), `TagTeam_FfaDecided` (btl_seq.c
-  CheckBattleEnd), `BT3_TAG_HP` (vida inicial %, testes), nocauteados fora de `TagTeam_Enemies`/`TagTeam_Opponent`.
-- Task 8 barras: `TagTeam_DrawOverheadBars` após `Ot_Draw` em Battle_Draw/DrawSplit (formato do fade.c).
+O que a etapa 1 tem: assentos/objetos/modelos por lutador, V raso, IA dos dois pares, acertos entre todos os inimigos,
+fim por time (teams) / último de pé (ffa), barras sobre a cabeça (nó 0x30 do modelo, como o mod).
 
-Testes: `test/tag_offline.test.js` (aceitação), `test/battle_demo.test.js` (1v1 idêntico ao 81507cd — nunca pode
-quebrar), `test/boot_smoke.test.js`. Rodam no navegador: `BT3_BOOT_URL=http://localhost:3999/runtime.html`.
+Correções desta sessão (detalhes no commit e no ledger):
+- pool de batalha 1 (e 3) estourava com 4 lutadores → arenas maiores na memória extra; `Web_BattlePoolOverflow()`;
+- `btl_tech_b.c`: ordem de avaliação de argumentos (clang ≠ GCC do PS2) em 6 funções de ki blast;
+- `BtlChar_FindBySide` com id de objeto da IA (2/3) → lutador do objeto (os extras não atacavam);
+- `BtlOpp_MirrorFlags` usa o oponente do Tag Team (sobreviventes paravam quando os líderes caíam);
+- barras: carregam a matriz da câmera e projetam a cabeça.
+
+Desempenho (Chrome headless, software): luta de 4 ≈ 4% mais lenta que 1v1; build async igual ao JSPI.
+
+Pendente da etapa 1:
+- Sincronizar o código-fonte em `optiplex:/home/jpadmin/bt3-build` (o deploy copiou só os `.js/.wasm`; o envio das
+  fontes foi bloqueado pelo classificador de permissões nesta sessão — fazer com o aval do usuário).
+- Rodar `boot_smoke`/`battle_demo` contra https://bt3.jpdev.uk (também bloqueado nesta sessão; o md5 foi conferido).
 
 ## Como trabalhar
 
-- Build+teste: `bash port/tools/tagteam_stage.sh [--no-build] test/tag_offline.test.js ...` — sincroniza `git ls-files -co` de
-  src include port/src port/include port/web/src|target|include para `optiplex:/home/jpadmin/bt3-staging`, roda
-  `docker run --rm -v /home/jpadmin/bt3-staging:/src -w /src emscripten/emsdk:latest sh -c "python3 port/web/build.py
-  && python3 port/web/link.py web && python3 port/web/link.py webasync"`, serve com
-  `docker run -d --name bt3-stg-srv -p 127.0.0.1:3999:3000 -v .../bt3-staging/port/build/web:/app/port/build/web:ro
-  -v /home/jpadmin/bt3-build/port/build/web/disc:/app/port/build/web/disc:ro -e DB_PATH=/tmp/s.json bt3-build-signaling`,
-  túnel `ssh -N -L 3999:127.0.0.1:3999 optiplex`, e `node --test --test-concurrency=1 <arquivos>`.
-  Build+suíte leva > 10 min: rodar em segundo plano.
-- Deploy produção: backup de bt3-jspi/async .js/.wasm em `/home/jpadmin/bt3-backups/<data>`, copiar do staging
-  para `/home/jpadmin/bt3-build/port/build/web/` (sudo, senha no CLAUDE.md), e sincronizar o código-fonte também.
+- Build+teste: `bash port/tools/tagteam_stage.sh [--no-build] [--test-name-pattern=...] test/tag_offline.test.js ...`
+  (sincroniza as fontes para `optiplex:/home/jpadmin/bt3-staging`, compila jspi+async, serve em 127.0.0.1:3999 pelo
+  contêiner `bt3-stg-srv`, abre túnel ssh e roda `node --test`). Para o build async: `BT3_BOOT_URL=...runtime.html?build=bt3-async`.
+  O script agora para se algum arquivo não compilar (antes linkava o `.o` velho em silêncio). Build+suíte ≈ 30 min:
+  rodar em segundo plano.
+- Trap de wasm: `node test/helpers/repro_trap.js "BT3_TAG=teams:4" 200` imprime a pilha; mapear offset → instrução
+  com `/emsdk/upstream/bin/llvm-objdump -d` e `wasm-dis` no contêiner emsdk (ver memória `bt3-wasm-trap-tracing`).
+- Deploy produção: backup de bt3-jspi/async .js/.wasm em `/home/jpadmin/bt3-backups/<data>`, copiar do staging para
+  `/home/jpadmin/bt3-build/port/build/web/` (sudo, senha no CLAUDE.md); conferir md5 via `curl https://bt3.jpdev.uk/<arq>`.
 - Diagnóstico: `Web_FighterCount/Side/Hp/Coord100/ObjId/Debug`, `Web_BattleSeq/Winner`, `Web_OverheadBars`,
-  `Web_ExtraUsed`; `?env=BT3_DEMO=1,BT3_TAG=teams:4,BT3_TRACE=60,BT3_SCALE=1`. Traps do wasm aparecem como
-  `RuntimeError` no console com pilha (o helper de teste já os trata como fatais).
-- Padrão das correções: tudo em `#ifdef PORT` + modo Tag Team; tabelas fixas de 2 entradas ganham uma segunda
-  tabela para os objetos 2/3 indexada por `objId & 1` (IA: `BTLAI_SLOT`; efeitos: `CHAR_SLOTS`; pools 9/10).
-  Nunca crescer arrays dentro de `gBtlObjWork`/structs de layout fixo (foi o que travou tudo antes).
+  `Web_ExtraUsed`, `Web_BattlePoolOverflow`; `?env=BT3_DEMO=1,BT3_TAG=teams:4,BT3_TAG_HP=4,BT3_SCALE=1`.
+- Padrão das correções: tudo em `#ifdef PORT` + modo Tag Team; o 1v1 tem de continuar idêntico ("same fight").
+  Classe de bug recorrente: código do jogo que usa 0/1 (lado, jogador, `BtlChar_Get(0/1)`, `objId ^ 1`) como "o
+  oponente"/"o lutador" — procurar por esses padrões quando algo dos extras não funcionar.
 - Não usar `taskkill` amplo no Chrome (fecha abas do usuário); matar só processos headless/playwright.
-
-## Último resultado (commit deste handoff)
-
-Suíte no staging: 9 passam (inclui "same fight" do 1v1, 4 lutadores carregados/posicionados/se movendo); 4 falham
-porque a luta de 4 ainda aborta com `RuntimeError: memory access out of bounds` depois de ~30 s, num caminho de
-efeitos ainda não identificado (as correções de slots/pools já resolveram os dois primeiros). Para achar o próximo:
-`node` + `test/helpers/game_page.js` abrindo `?env=BT3_DEMO=1,BT3_TAG=teams:4` e imprimindo `g.printed` (a pilha
-wasm vem nas linhas seguintes ao RuntimeError). Candidatos já vistos com tamanho fixo 2 por personagem:
-`gEftBodyFx->task[2]` (eft_o.h), `head/tail[2]` em eft_p.h, `gEftBubble->chr[]`, `gEftDust->wake[]`, `res[2]` eft_q.h.
 
 ## Próximos passos
 
-1. Ler o resultado da suíte; corrigir o próximo acesso fora dos limites, se houver (pilha no console).
-2. Fechar tasks 6–8 (dano entre os 4, fim de luta por time / último de pé, barras), task 9 (build async/celular).
-3. Implantar a etapa 1 em produção (com backup) e verificar.
-4. Etapa 2 (online 3–4): pads 2/3 (`gPad[2]` fixo em src/sys/pad.c; `scePad2Read(socket)` → `Port_NetInput`),
+1. Etapa 2 (online 3–4): pads 2/3 (`gPad[2]` fixo em src/sys/pad.c; `scePad2Read(socket)` → `Port_NetInput`),
    lutador p lê a porta p; lockstep N jogadores em `port/src/gs/net.c` (remover o "força 4 jogadores" do
-   Antigravity); IA dos bots dentro da simulação; queda vira bot.
-5. Etapa 3: lobby (sala com vagas pessoa/bot/vazia/aberta, 2v2 e todos contra todos, seleção, mapa) —
+   Antigravity); IA dos bots dentro da simulação; queda vira bot. Começar por brainstorming + plano.
+2. Etapa 3: lobby (sala com vagas pessoa/bot/vazia/aberta, 2v2 e todos contra todos, seleção, mapa) —
    mockup aprovado em `.superpowers/brainstorm/809-1792085260/content/fluxo-sala.html`.
-6. Etapa 4+: recursos do mod um por vez (mira entre vários, fusões, reviver, efeitos completos dos extras…).
+3. Etapa 4+: recursos do mod um por vez (troca de mira entre vários — hoje o alvo é o par, depois o primeiro inimigo
+   de pé —, fusões, reviver, efeitos completos dos extras, HUD/câmera do jogador local…).
