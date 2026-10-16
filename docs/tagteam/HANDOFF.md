@@ -25,10 +25,14 @@ Correções desta sessão (detalhes no commit e no ledger):
 
 Desempenho (Chrome headless, software): luta de 4 ≈ 4% mais lenta que 1v1; build async igual ao JSPI.
 
-Pendente da etapa 1:
-- Sincronizar o código-fonte em `optiplex:/home/jpadmin/bt3-build` (o deploy copiou só os `.js/.wasm`; o envio das
-  fontes foi bloqueado pelo classificador de permissões nesta sessão — fazer com o aval do usuário).
-- Rodar `boot_smoke`/`battle_demo` contra https://bt3.jpdev.uk (também bloqueado nesta sessão; o md5 foi conferido).
+Fontes de produção: as 546 fontes de build (src, include, port/src, port/include, port/web/{src,target,include})
+foram sincronizadas em `optiplex:/home/jpadmin/bt3-build` e conferidas por md5 (backup das antigas em
+`bt3-backups/2026-10-16-tagteam-stage1/bt3-build-sources.tgz`).
+`boot_smoke` + `battle_demo` contra https://bt3.jpdev.uk/runtime.html: 3/3 (inclui o "same fight").
+
+Branch `antigravity/tarefas` ainda não foi enviado: `origin` (stufno102) é só leitura; o fork do usuário é
+`joaopssouza/Tenkaichi3Decomp` (gh instalado em `C:\Program Files\GitHub CLI\gh.exe`, fora do PATH da sessão).
+Enviar para o fork e abrir PR exige o aval do usuário (o classificador barrou o push).
 
 ## Como trabalhar
 
