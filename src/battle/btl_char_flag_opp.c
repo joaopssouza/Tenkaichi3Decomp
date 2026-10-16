@@ -325,11 +325,15 @@ s32 BtlOpp_GetClashCountB(BtlFlagChr *chr) {
 void BtlOpp_MirrorFlags(BtlFlagChr *chr) {
     BtlFlagChr *opp;
 
+#ifdef PORT
+    opp = OPPONENT(chr); /* the Tag Team opponent; in a two-fighter battle the same as below */
+#else
     if (chr->player == 0) {
         opp = BtlChar_Get(1);
     } else {
         opp = BtlChar_Get(0);
     }
+#endif
     BtlChar_ClearFlagRange(chr, 0xAC, 0xB9);
     if (BtlChar_TestFlag(opp, 0xB)) {
         BtlChar_SetHeldFlag(chr, 0xAC);

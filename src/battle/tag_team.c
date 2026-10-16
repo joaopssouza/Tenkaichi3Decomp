@@ -314,11 +314,14 @@ u8 *TagTeam_CharaWork(s32 objId) {
    Battle_DrawSplit's Ot_Draw calls, 0x12B8DC / 0x12BADC), every other fighter's head is projected with the view's
    matrix (Vu0Cur_ProjectPoint, 0x1210D8) and a bar is put 14 pixels above it as untextured GS sprites in a direct
    packet (Dma_BeginDirect / Dma_EndDirect, 0x100878 / 0x100890): 48 x 5 pixels, a one-pixel dark outline, a grey
-   track, the health in the team's colour (GS ABGR 0x80FFBC48 blue, 0x804878FF red). Here the head is the fighter's
-   position raised by its height (the mod reads the model's head joint). In a free-for-all each seat has a colour. */
+   track, the health in the team's colour (GS ABGR 0x80FFBC48 blue, 0x804878FF red). The point projected is the
+   model's node 0x30 (the mod reads model + 3436 + 48 * 4, as BtlCharApi_GetNodePos does) raised by 3 units. In a
+   free-for-all each seat has a colour. */
 #define BAR_W 48
 #define BAR_H 5
 #define BAR_GAP 14
+#define BAR_NODE 0x30
+#define BAR_LIFT 3.0f
 #define SCR_X0 1792 /* the 512 x 448 screen in GS coordinates, centred on 2048, 2048 (src/sys/fade.c) */
 #define SCR_Y0 1824
 #define SCR_X1 (SCR_X0 + 512)
@@ -327,8 +330,12 @@ u8 *TagTeam_CharaWork(s32 objId) {
 extern u64 *Dma_BeginDirect(void);
 extern void Dma_EndDirect(u64 *end);
 extern void Gfx_PutDefaultEnv(u64 **pp);
-extern s32 Vu0Cur_ProjectPoint(s32 *out, Vec4 *pos);
-extern f32 BtlCharApi_GetHeight(s32 objId);
+extern s32 Vu0Cur_ProjectPoint(s32 *out, Vec4 *pos); /* with the loaded matrix */
+extern void Vu0Cur_Push(void);
+extern void Vu0Cur_Pop(void);
+extern void Vu0Cur_LoadMtx(Mtx44 *m);
+#include "battle/btl_cam.h" /* gBtlCamView: the view being drawn */
+extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
 extern s32 BtlCharApi_GetHpMax(s32 objId);
 
 static const u32 sBarColor[TAG_FIGHTERS_MAX] = {0x80FFBC48, 0x804878FF, 0x8048E070, 0x8030D0F0};
@@ -383,6 +390,8 @@ void TagTeam_DrawOverheadBars(void) {
     q[0] = GS_SET_ZBUF(0xE0, GS_PSMZ24, 1); /* no depth writes */
     q[1] = GS_ZBUF_1;
     q += 2;
+    Vu0Cur_Push();
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen); /* the view's world-to-screen, as the effects load it (eft_g.c) */
     for (p = 0; p < gBtlChars->count; p++) {
         if (p == sLocalSeat) {
             continue;
@@ -393,8 +402,8 @@ void TagTeam_DrawOverheadBars(void) {
         if (max <= 0) {
             continue;
         }
-        BtlCharApi_GetPos(objId, &pos);
-        pos.y -= BtlCharApi_GetHeight(objId); /* (negative y is up) */
+        BtlCharApi_GetNodePos(objId, BAR_NODE, &pos);
+        pos.y -= BAR_LIFT; /* (negative y is up) */
         pos.w = 1.0f;
         Vu0Cur_ProjectPoint(scr, &pos);
         if (scr[3] <= 0) { /* behind the view */
@@ -413,6 +422,7 @@ void TagTeam_DrawOverheadBars(void) {
         }
         sBarsDrawn++;
     }
+    Vu0Cur_Pop();
     Dma_EndDirect(q);
 }
 

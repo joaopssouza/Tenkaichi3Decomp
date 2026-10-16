@@ -1,5 +1,6 @@
 #include "common.h"
 #include "battle/btl_char_get.h"
+#include "battle/tag_team.h"
 
 /*
  * Battle helpers and fighter accessors: 0x1DBF20..0x1DC9A0.
@@ -194,6 +195,14 @@ BtlCharGetChr *BtlChar_FindBySide(s32 side) {
             return chr;
         }
     }
+#ifdef PORT
+    /* The AI asks by its fighter's object id (BtlSide_GetKi(ai->objId), ...), which is the side in a two-fighter
+       battle. In a Tag Team battle sides are 0 and 1, the leaders first: objects 2 and up are the extra fighters
+       (battle/tag_team.h). */
+    if (TagTeam_Mode() != TAG_MODE_NONE) {
+        return BtlChar_FindByObjId(side);
+    }
+#endif
     return NULL;
 }
 

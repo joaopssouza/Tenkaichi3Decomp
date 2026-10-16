@@ -99,6 +99,22 @@ test('BT3_TAG=teams:4 gives every fighter its own model and object, their work i
   }
 });
 
+// Every battle pool arena stays inside its size (src/battle/btl_pool.c): the effect managers size themselves by the
+// fighter count, and with four the game's pool 1 ran over into pool 2 (two task lists on the same memory, a trap).
+for (const tag of [null, 'teams:4', 'ffa:4']) {
+  test(`the battle pools stay inside their arenas (${tag || 'two fighters'})`, opts, async () => {
+    const env = { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt' };
+    if (tag) env.BT3_TAG = tag;
+    const g = await openGame(URL_, { env });
+    try {
+      await afterFighting(g, 30);
+      assert.strictEqual(await g.evaluate(() => Module._Web_BattlePoolOverflow()), 0, 'bit n: slot n ran over its arena');
+    } finally {
+      await g.close();
+    }
+  });
+}
+
 test('BT3_TAG=teams:4 starts each partner beside its leader, on the ground (the mod\'s shallow V)', opts, async () => {
   const g = await openGame(URL_, { env: { BT3_DEMO: '1', BT3_HASH: '/tmp/fight.txt', BT3_TAG: 'teams:4' } });
   try {
@@ -140,7 +156,10 @@ async function untilDecided(g) {
     await g.page.waitForTimeout(3000);
     assert.strictEqual(g.fatal(), null, `the program stopped: ${g.fatal()}`);
     const [seq, winner] = await g.evaluate(() => [Module._Web_BattleSeq(), Module._Web_BattleWinner()]);
-    if (seq >= 4) return { f: await fighters(g), winner };
+    if (seq >= 4) {
+      assert.strictEqual(await g.evaluate(() => Module._Web_BattlePoolOverflow()), 0, 'a battle pool ran over its arena');
+      return { f: await fighters(g), winner };
+    }
   }
   assert.fail(`the battle was not decided in ${SECONDS * 3} s`);
 }
