@@ -30,9 +30,9 @@ foram sincronizadas em `optiplex:/home/jpadmin/bt3-build` e conferidas por md5 (
 `bt3-backups/2026-10-16-tagteam-stage1/bt3-build-sources.tgz`).
 `boot_smoke` + `battle_demo` contra https://bt3.jpdev.uk/runtime.html: 3/3 (inclui o "same fight").
 
-Branch `antigravity/tarefas` ainda não foi enviado: `origin` (stufno102) é só leitura; o fork do usuário é
-`joaopssouza/Tenkaichi3Decomp` (gh instalado em `C:\Program Files\GitHub CLI\gh.exe`, fora do PATH da sessão).
-Enviar para o fork e abrir PR exige o aval do usuário (o classificador barrou o push).
+Branch `antigravity/tarefas` enviado ao fork do usuário (remote `fork` = joaopssouza/Tenkaichi3Decomp); PR contra
+`web-port`: https://github.com/joaopssouza/Tenkaichi3Decomp/pull/1. `origin` (stufno102) é só leitura; o gh fica em
+`C:\Program Files\GitHub CLI\gh.exe`, fora do PATH da sessão. O push é o usuário quem faz (o classificador barra).
 
 ## Como trabalhar
 
