@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_ai_slot.h"
 #include "battle/btl_ai_act.h"
 #include "sys/rand.h"
 
@@ -304,7 +305,7 @@ void BtlAiAtk_Reset(s32 side, AiActAtk *atk) {
 f32 BtlAiAtk_RollCharge(AiActSide *s, s8 base, s8 range) {
     s32 roll = Rand_Range(100);
     s32 chance[5] = { 10, 20, 30, 40, 50 };
-    AiActSide *opp = &gBtlAi->side[s->side ^ 1];
+    AiActSide *opp = &gBtlAi->side[BTLAI_SLOT(s->side ^ 1)];
     s32 kind = opp->atk.oppKind;
     f32 ret = 0.0f;
     s32 thr;
@@ -1222,7 +1223,7 @@ s32 BtlAiSense_CheckBit40(AiActSide *s) {
     AiActStatus *st = &s->st;
     AiActSeq *act = &s->act;
     AiActEntry *e = &s->act.stack[0];
-    AiActSide *opp = &gBtlAi->side[s->side ^ 1];
+    AiActSide *opp = &gBtlAi->side[BTLAI_SLOT(s->side ^ 1)];
     AiActTables *tbl = gBtlAi->data->tables;
     s32 oppState = BtlCharApi_GetUnk974(s->side ^ 1);
     s32 cls = tbl->stateClass[oppState];
@@ -1265,7 +1266,7 @@ s32 BtlAiSense_CheckBit41(AiActSide *s) {
     AiActSeq *act = &s->act;
     AiActEntry *e = &s->act.stack[0];
 
-    if (!BtlAiSense_IsBehindOpponent(&gBtlAi->side[s->side ^ 1])) {
+    if (!BtlAiSense_IsBehindOpponent(&gBtlAi->side[BTLAI_SLOT(s->side ^ 1)])) {
         return 0;
     }
     if (m->dist[1] < gBtlAi->dist) {
@@ -1300,7 +1301,7 @@ s32 BtlAiSense_CheckBit28(AiActSide *s) {
     if ((u8)(cls[0] - 13) < 11) {
         return 0;
     }
-    if (BtlAiSense_IsBehindOpponent(&gBtlAi->side[s->side ^ 1])) {
+    if (BtlAiSense_IsBehindOpponent(&gBtlAi->side[BTLAI_SLOT(s->side ^ 1)])) {
         return 0;
     }
     if (!((u32)((u8)cls[1] - 13) < 5)) {

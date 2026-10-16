@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/btl_char_flag.h"
 
 /*
@@ -37,7 +38,13 @@ extern s32 BtlParam_GetUnk0(BtlFlagChr *chr);                        /* u16 at +
 extern s32 BtlParam_GetUnk2(BtlFlagChr *chr);                        /* s8 at +2 of the object's parameter block */
 extern f32 BtlParam_GetUnkC7Scale(BtlFlagChr *chr);
 
+#ifdef PORT
+/* The port's Tag Team: a fighter's opponent is its seat's pair (seat p ^ 1, as the AI pairs objects 0-1 and 2-3);
+   otherwise the game's own rule (battle/tag_team.h). */
+#define OPPONENT(chr) ((BtlFlagChr *)TagTeam_Opponent(chr, (chr)->player == 0 ? (void *)BtlChar_Get(1) : (void *)BtlChar_Get(0)))
+#else
 #define OPPONENT(chr) ((chr)->player == 0 ? BtlChar_Get(1) : BtlChar_Get(0))
+#endif
 
 /* Where to aim at the opponent: its override position 6 when set, else its position. */
 void BtlOpp_GetTargetPos(BtlFlagChr *chr, Vec4 *out) {
@@ -318,11 +325,15 @@ s32 BtlOpp_GetClashCountB(BtlFlagChr *chr) {
 void BtlOpp_MirrorFlags(BtlFlagChr *chr) {
     BtlFlagChr *opp;
 
+#ifdef PORT
+    opp = OPPONENT(chr); /* the Tag Team opponent; in a two-fighter battle the same as below */
+#else
     if (chr->player == 0) {
         opp = BtlChar_Get(1);
     } else {
         opp = BtlChar_Get(0);
     }
+#endif
     BtlChar_ClearFlagRange(chr, 0xAC, 0xB9);
     if (BtlChar_TestFlag(opp, 0xB)) {
         BtlChar_SetHeldFlag(chr, 0xAC);

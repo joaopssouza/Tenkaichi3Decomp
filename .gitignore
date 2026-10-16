@@ -31,6 +31,7 @@ port/tests/ps2float/*.o
 /play.sh
 install.log
 port/build_release/
+.arquivos de fora
 
 # stages and songs from outside the disc that a player drops in next to the game (never committed)
 /stages/
@@ -41,3 +42,22 @@ port/build_release/
 /cloudflare/.dev.vars
 /demo/
 /cloudflare/wrangler.local.jsonc
+node_modules
+
+# Huge disc dumps, archives, and external decomp folders
+disc_ptbr.tar
+/DBZ3_SLUS_21678_PTBR/
+/Tenkaichi3Decomp/
+
+# Secrets and local environment
+.env
+.env.*
+
+# Temporary test files and IDE caches
+test_store_*.json
+.superpowers/
+
+# WebAssembly build outputs
+*.wasm
+port/web/bt3-*.js
+port/web/bt3-*.wasm

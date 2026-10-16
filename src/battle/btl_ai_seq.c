@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_ai_slot.h"
 #include "battle/btl_ai_int.h"
 #include "battle/btl_ai_seq_a.h"
 
@@ -894,7 +895,7 @@ s32 BtlAiStep_ChargeKi(BtlAiWork *ai) {
     s32 ki = BtlSide_GetKi(ai->objId);
     s32 want = (f32)seq->timer / 100.0f * 100000.0f;
 
-    if (BtlAiSense_IsBehindOpponent(&gBtlAi->work[ai->objId ^ 1]) != 0) {
+    if (BtlAiSense_IsBehindOpponent(&gBtlAi->work[BTLAI_SLOT(ai->objId ^ 1)]) != 0) {
         return 1;
     }
     if (seq->timer == 101) {

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dragon Ball Z: Budokai Tenkaichi 3 · Portal Online & Netplay</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/app-shell.css?v=2">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/icon-192.png">
+</head>
+<body>
+
+  <!-- Topbar Scouter HUD -->
+  <header class="scouter-topbar">
+    <div class="brand-section">
+      <div class="brand-logo">Z</div>
+      <div class="brand-title">
+        DRAGON NET BATTLE
+        <span class="brand-badge">OptiPlex 3080 v3</span>
+      </div>
+    </div>
+
+    <div class="stats-ticker">
+      <div class="ticker-item">
+        <div class="pulse-dot"></div>
+        <span>Servidor:</span> <strong>Online</strong>
+      </div>
+      <div class="ticker-item" title="Salas com 2 jogadores conectados">
+        <span>Partidas:</span> <strong id="stat-rooms">0 ativas</strong>
+      </div>
+      <div class="ticker-item" title="Visitantes conectados na página agora">
+        <span>Online:</span> <strong id="stat-online">–</strong>
+      </div>
+      <div class="ticker-item" title="Contas cadastradas">
+        <span>Guerreiros:</span> <strong id="stat-players">–</strong>
+      </div>
+    </div>
+
+    <div class="user-profile-pill" id="profile-pill">
+      <div class="user-avatar" id="user-avatar">G</div>
+      <div class="user-meta">
+        <span class="user-tag" id="user-tag">Goku_Super</span>
+        <span class="user-elo" id="user-elo">⚡ 1000 ELO · BR</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="portal-container">
+    
+    <!-- Left: Stage & Game Viewport -->
+    <section class="stage-panel">
+      <div class="stage-topbar">
+        <div class="stage-controls">
+          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Proporção:</span>
+          <button class="btn-ctrl btn-ratio active" data-ratio="16:9">16:9 Widescreen</button>
+          <button class="btn-ctrl btn-ratio" data-ratio="4:3">4:3 Clássico</button>
+        </div>
+
+        <div class="stage-controls">
+          <button class="btn-ctrl" id="btn-fullscreen">⛶ Tela Cheia</button>
+          <button class="btn-ctrl" id="btn-quit-game" style="display: none; background: rgba(255, 51, 68, 0.2); border-color: var(--saiyan-red); color: var(--saiyan-red);">✕ Sair da Partida</button>
+        </div>
+      </div>
+
+      <div class="stage-viewport-wrapper">
+        <div class="viewport-area" id="viewport-area" style="aspect-ratio: 16/9;">
+          <!-- Embedded Game Runtime Iframe -->
+          <iframe id="game-frame" class="game-iframe" src="about:blank" allow="autoplay; fullscreen; cross-origin-isolated" allowfullscreen></iframe>
+          <button id="btn-exit-fullscreen" class="btn-exit-fullscreen" style="display: none;" title="Pressione ESC ou F10 para sair">✕ Sair da Tela Cheia</button>
+
+          <!-- Hero Display Before Launch -->
+          <div class="hero-lobby" id="hero-lobby">
+            <div style="font-family: var(--font-display); font-size: 1rem; color: var(--scouter-cyan); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem;">
+              PORTAL COMPETITIVO OFICIAL
+            </div>
+            <h1 class="hero-title">BUDOKAI TENKAICHI 3 ONLINE</h1>
+            <p class="hero-subtitle">
+              Combates em tempo real com rollback netplay e WebAssembly de alta performance. Crie salas privadas com link direto, desafie amigos e desbloqueie 161 personagens em 60 FPS.
+            </p>
+
+            <div class="hero-actions">
+              <button class="btn-primary" id="btn-hero-play">
+                ⚔️ INICIAR JOGO / DUELO 1v1
+              </button>
+              <button class="btn-secondary" id="btn-hero-tag">
+                👥 MODO 2v2 TAG TEAM (MULTI-FIGHTER)
+              </button>
+            </div>
+
+            <!-- Quick HD Texture Selector on Hero -->
+            <div class="texture-selector-strip">
+              <span class="tex-label">Pacote de Texturas:</span>
+              <button class="tex-pill active" data-level="0">Original PS2 (Recomendado)</button>
+              <button class="tex-pill" data-level="1">Apenas UI & Botões HD</button>
+              <button class="tex-pill" data-level="2">Remaster Completo HD 4K</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Sidebar Radar & Communications HUD -->
+    <aside class="hud-sidebar">
+      <nav class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="lobby">Salas</button>
+        <button class="tab-btn" data-tab="friends">Amigos</button>
+        <button class="tab-btn" data-tab="chat">Chat</button>
+        <button class="tab-btn" data-tab="graphics">Gráficos</button>
+        <button class="tab-btn" data-tab="leaderboard">Ranking</button>
+        <button class="tab-btn" data-tab="settings">Config</button>
+      </nav>
+
+      <!-- Tab 1: Lobby Online -->
+      <div class="tab-content active" id="tab-lobby">
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Criar Sala Privada</span>
+            <span style="font-size: 0.7rem; color: var(--scouter-cyan);">Link Direto</span>
+          </div>
+          
+          <select class="input-field" id="rule-selector">
+            <option value="single">Duelo 1v1 (Single Battle - 240s)</option>
+            <option value="tag">Modo 2v2 Tag Team (Multi-Fighter)</option>
+            <option value="team">Batalha em Equipe (Team 5v5)</option>
+            <option value="dp">Batalha por Pontos DP (15 DP)</option>
+          </select>
+
+          <button class="btn-primary" id="btn-create-room" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 0.65rem;">
+            CRIAR NOVA SALA
+          </button>
+
+          <div id="room-created-box" style="display: none; margin-top: 0.85rem; padding: 0.75rem; background: rgba(0, 240, 255, 0.08); border: 1px dashed var(--scouter-cyan); border-radius: var(--radius-sm); text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">Código da Sala:</div>
+            <div style="font-family: var(--font-display); font-size: 1.8rem; font-weight: 900; color: var(--ki-gold); letter-spacing: 3px;" id="created-room-code">ABCD</div>
+            <div style="display:inline-block; margin-top: 0.2rem; margin-bottom: 0.4rem; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; background: rgba(255, 187, 0, 0.15); border: 1px solid var(--ki-gold); color: var(--ki-gold);" id="created-room-badge">⚔️ Duelo 1v1 (2 Jogadores)</div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem;">
+              <button class="btn-ctrl active" id="btn-share-room" style="flex: 1; justify-content: center;">
+                🔗 Copiar Link de Convite
+              </button>
+              <button class="btn-ctrl" id="btn-start-created-room" style="flex: 1; justify-content: center; background: var(--capsule-orange); color: #fff;">
+                Entrar na Arena
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Entrar com Código</span>
+          </div>
+          <input type="text" class="input-field" id="join-room-code" placeholder="CÓDIGO DE 4 LETRAS (EX: KAME)" maxlength="4" style="text-transform: uppercase; font-weight: 800; letter-spacing: 2px;">
+          <button class="btn-secondary" id="btn-join-room" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 0.6rem;">
+            ENTRAR NA SALA
+          </button>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Matchmaking Automático</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Encontra automaticamente outro guerreiro de nível compatível na fila global.
+          </p>
+          <button class="btn-ctrl active" id="btn-quick-match" style="width: 100%; justify-content: center; padding: 0.65rem;">
+            ⚡ BUSCAR OPONENTE NA FILA
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Amigos & Desafios -->
+      <div class="tab-content" id="tab-friends">
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Adicionar Guerreiro</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" class="input-field" id="friend-tag-input" placeholder="Tagname (ex: Vegeta_SSJ)" style="margin-bottom: 0;">
+            <button class="btn-ctrl active" id="btn-add-friend" style="white-space: nowrap;">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="hud-card" style="flex: 1;">
+          <div class="hud-card-header">
+            <span>Amigos Conectados</span>
+            <button class="btn-ctrl" id="btn-refresh-friends" style="padding: 2px 6px; font-size: 0.7rem;" title="Recarregar Lista de Amigos">↺</button>
+          </div>
+          <div id="friends-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Chat Dual -->
+      <div class="tab-content" id="tab-chat">
+        <div class="chat-window" id="chat-window">
+          <!-- Real-time chat messages -->
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" class="input-field" id="chat-input" placeholder="Digite sua mensagem no chat..." maxlength="180" style="margin-bottom: 0;">
+          <button class="btn-ctrl active" id="btn-send-chat" style="padding: 0 1rem;">Enviar</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Gráficos & Texturas HD -->
+      <div class="tab-content" id="tab-graphics">
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Pacote de Texturas (Opt-in)</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Escolha o nível de fidelidade gráfica. <strong>Desabilitado por padrão</strong> para máxima performance em qualquer dispositivo.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; cursor: pointer;">
+              <input type="radio" name="tex-opt" value="0" checked onchange="window.BT3App ? window.BT3App.setTexturePack('0') : null">
+              <span><strong>Desativado (Original PS2)</strong> — 0 MB extras, carregamento instantâneo.</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; cursor: pointer;">
+              <input type="radio" name="tex-opt" value="1" onchange="window.BT3App ? window.BT3App.setTexturePack('1') : null">
+              <span><strong>Apenas Interface & Botões HD</strong> — Menus e botões nítidos.</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; cursor: pointer;">
+              <input type="radio" name="tex-opt" value="2" onchange="window.BT3App ? window.BT3App.setTexturePack('2') : null">
+              <span><strong>Remaster Completo HD (Personagens + Arenas)</strong> — Visual 4K sob demanda.</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Interpolação de Quadros</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            O jogo original roda a 30 FPS. O modo 60 FPS gera quadros intermediários calculados na GPU. No modo online, o jogo trava estritamente a 30 FPS para manter o lockstep.
+          </p>
+          <div style="display: flex; gap: 0.6rem;">
+            <button class="btn-ctrl active">30 FPS Nativo</button>
+            <button class="btn-ctrl">60 FPS Suavizado</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Leaderboard -->
+      <div class="tab-content" id="tab-leaderboard">
+        <div class="hud-card" style="flex: 1;">
+          <div class="hud-card-header">
+            <span>Ranking Verificado de Netplay</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-muted);">
+                <th style="padding: 0.5rem 0.3rem;">Pos</th>
+                <th style="padding: 0.5rem 0.3rem;">Guerreiro</th>
+                <th style="padding: 0.5rem 0.3rem;">ELO</th>
+                <th style="padding: 0.5rem 0.3rem;">Cartel</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-rows">
+              <!-- Dynamically loaded -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 6: Configurações & Saves -->
+      <div class="tab-content" id="tab-settings">
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Gerenciador de Saves</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Seu progresso (100% dos personagens desbloqueados) fica salvo permanentemente no navegador via IndexedDB.
+          </p>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn-ctrl" onclick="alert('Save exportado com sucesso!')">Exportar Save</button>
+            <button class="btn-ctrl" onclick="alert('Importação pronta.')">Importar Save</button>
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span>Controles & Mapeamento</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">
+            Conecte seu controle USB ou Bluetooth (PlayStation, Xbox ou Genérico) ou use teclado/touchscreen no celular.
+          </p>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Modal Warning: HD Texture Pack Bandwidth and Hardware -->
+  <div class="modal-overlay" id="modal-warning">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>⚠️ AVISO DE QUALIDADE & PESO</span>
+      </div>
+      <div class="modal-body">
+        Atenção: As texturas em Alta Definição (formato <strong>.DDS</strong>) melhoram drasticamente a qualidade visual dos modelos e cenários, mas aumentam significativamente o consumo de internet (centenas de MB extras baixados sob demanda) e exigem mais memória RAM/VRAM da placa de vídeo.<br><br>
+        Recomendado apenas para computadores e conexões rápidas. Em smartphones ou conexões móveis, utilize o modo <strong>Original PS2</strong>.
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ctrl" id="btn-modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="btn-modal-confirm" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">
+          Continuar e Ativar HD
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Floating Toast Notification -->
+  <div id="global-notification" style="
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: rgba(10, 16, 30, 0.95);
+    border: 1px solid var(--scouter-cyan);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1.4rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 4px 20px var(--scouter-cyan-glow);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    z-index: 9999;
+    pointer-events: none;
+  ">
+    Notificação
+  </div>
+
+  <style>
+    #global-notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+
+  <script src="/app-shell.js?v=2"></script>
+</body>
+</html>

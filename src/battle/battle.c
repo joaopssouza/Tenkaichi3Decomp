@@ -1,5 +1,6 @@
 #include "common.h"
 #include "battle/battle.h"
+#include "battle/tag_team.h"
 #include "sys/adx.h"
 #include "sys/dma.h"
 #include "sys/job.h"
@@ -151,7 +152,11 @@ s32 Battle_Init(void) {
     Battle_Load();
     StgFx_Init();
     StgModel_InitStage();
+#ifdef PORT
+    BtlChar_AllocAll(TagTeam_Fighters()); /* 2, or a Tag Team battle's fighters (battle/tag_team.h) */
+#else
     BtlChar_AllocAll(2);
+#endif
     BtlAiMgr_Init();
     BtlCam_Init();
     StgNav_Init();
@@ -176,6 +181,9 @@ s32 Battle_Term(void) {
     StgNav_Term();
     BtlGame_Term();
     Battle_Unload();
+#ifdef PORT
+    TagTeam_EndBattle();
+#endif
     Fade_ResetAll();
     Dma_ResetBuffers();
     Job_Clear();
@@ -246,6 +254,9 @@ s32 Battle_Draw(void) {
     Gfx_AddDefaultEnv();
     BtlScene_Draw(1);
     Ot_Draw();
+#ifdef PORT
+    TagTeam_DrawOverheadBars(); /* (battle/tag_team.h) */
+#endif
     Dbg_ProfColor(prof, 0x804040FF);
     Dbg_ProfMark(prof);
     Gfx_MarkPass(3);
@@ -301,6 +312,9 @@ s32 Battle_DrawSplit(void) {
         BtlCam_ApplyView(1);
         BtlScene_Draw(i == 0);
         Ot_Draw();
+#ifdef PORT
+        TagTeam_DrawOverheadBars();
+#endif
     }
     Dbg_ProfColor(gBattleProf, 0x804040FF);
     Dbg_ProfMark(gBattleProf);

@@ -4,6 +4,7 @@
 #include "battle/btl_char_mgr.h"
 #include "battle/btl_scene.h"
 #include "battle/btl_seq.h"
+#include "battle/tag_team.h"
 #include "sys/common.h"
 #include "sys/heap.h"
 #include "sys/save.h"
@@ -244,7 +245,11 @@ void BtlChar_BindObject(BtlMgrChr *chr) {
     BtlMgrObj *obj;
     s32 i;
 
+#ifdef PORT
+    chr->objId = TagTeam_SeatObjId(chr - gBtlChars->chars, BattleSide_GetObjId(chr->side)); /* (battle/tag_team.h) */
+#else
     chr->objId = BattleSide_GetObjId(chr->side);
+#endif
     obj = BtlChar_GetObj(chr);
     chr->unk980 = -1;
     for (i = 0; i < 3; i++) {
@@ -330,6 +335,30 @@ void BtlChar_Reset(BtlMgrChr *chr) {
     BtlAnim_Play(chr, 0, 0.0f);
     BtlObjAnim_SamplePose(obj);
     BtlObjPose_CalcMatrices(obj);
+#ifdef PORT
+    {
+        /* a Tag Team fighter is one member of its side, alone (battle/tag_team.h) */
+        s32 seat = chr - gBtlChars->chars;
+        s32 src;
+
+        chr->memberCount = TagTeam_SeatMemberCount(seat, BattleSide_GetMemberCount(side));
+        chr->unk1300 = BattleSide_GetUnk1FC(side);
+        chr->unkCF4 = BattleSide_GetUnk200(side);
+        BtlChar_CopyAllBonus(chr);
+        BtlChar_CopyAllAbility(chr);
+        for (i = 0; i < chr->memberCount; i++) {
+            src = TagTeam_SeatMember(seat, i);
+            mem = &chr->members[i];
+            mem->present = 1;
+            mem->chara = BattleSide_GetMemberChara(side, src);
+            mem->costume = BattleSide_GetMemberCostume(side, src);
+            mem->cpuLevel = BattleSide_GetMember(side, src)->cpuLevel;
+            mem->aiType = BattleSide_GetMember(side, src)->aiType;
+            m = BattleSide_GetMember(side, src);
+            BtlMember_LoadParams(chr, i, 1, m->health, BattleSide_GetMemberVariant(side, src));
+        }
+    }
+#else
     chr->memberCount = BattleSide_GetMemberCount(side);
     chr->unk1300 = BattleSide_GetUnk1FC(side);
     chr->unkCF4 = BattleSide_GetUnk200(side);
@@ -345,6 +374,7 @@ void BtlChar_Reset(BtlMgrChr *chr) {
         m = BattleSide_GetMember(side, i);
         BtlMember_LoadParams(chr, i, 1, m->health, BattleSide_GetMemberVariant(side, i));
     }
+#endif
     chr->unk99C = 0;
     if (BtlMember_HasAbility(chr, 0x1B)) {
         chr->unk99C = 100000;
@@ -564,7 +594,11 @@ void BtlChar_ResetObjWork(BtlMgrChr *chr) {
 
 /* Decides which fighters are frozen (hit-stop) and counts the freeze timers down. */
 void BtlChars_UpdateFreeze(void) {
+#ifdef PORT
+    s32 level[TAG_FIGHTERS_MAX]; /* one per fighter: a Tag Team battle has more than two (battle/tag_team.h) */
+#else
     s32 level[2];
+#endif
     s32 i;
     s32 max;
     u8 *bytes;
@@ -1330,9 +1364,15 @@ void BtlChar_ResetAll(void) {
     BtlReplay_ResetViewer();
     for (i = 0; i < BtlChar_GetCount(); i++) {
         chr = BtlChar_Get(i);
+#ifdef PORT
+        chr->side = TagTeam_SeatSide(i); /* i; in a Tag Team battle its team, i & 1 (battle/tag_team.h) */
+        pad = BattleSide_GetPad(chr->side);
+        chr->index = chr->side;
+#else
         chr->side = i;
         pad = BattleSide_GetPad(i);
         chr->index = i;
+#endif
         chr->pad = pad;
         BtlChar_BindObject(chr);
         BtlChar_Reset(chr);

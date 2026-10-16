@@ -441,6 +441,12 @@ BtlObj *BtlObj_Get(s32 id) {
 u8 *BtlObj_GetCharaWork(u32 id) {
     BtlObjTable *tbl = BtlObj_GetTable();
 
+#ifdef PORT
+    if (TagTeam_CharaWork(id) != NULL) { /* a Tag Team extra fighter's own buffer (battle/tag_team.h) */
+        return TagTeam_CharaWork(id);
+    }
+#endif
+
     if (id < 3) {
         return tbl->charaWork[id];
     }

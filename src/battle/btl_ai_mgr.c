@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_ai_slot.h"
 #include "battle/btl_ai_mgr.h"
 #include "battle/battle.h"
 #include "battle/btl_seq.h"
@@ -95,6 +96,14 @@ static inline s32 BtlAiMove_Mod(s32 a, s32 b) {
 extern void BtlAiSense_Update(BtlAiWork *s);
 
 extern BtlAi *gBtlAi;
+#ifdef PORT
+/* The port's Tag Team (battle/tag_team.h): the fighters with objects 2 and 3 are a second pair, each the other's
+   opponent (objId ^ 1, as the game pairs 0 and 1), run by a second manager block like the game's: the same code,
+   with gBtlAi pointing at it while that pair is updated. sPairBase is the first object of the pair being run. */
+#include "battle/tag_team.h"
+static BtlAi sAiPair2;
+static s32 sPairBase;
+#endif
 
 /* Frees what the block owns, rebinds the shared AI data and resets both sides from their fighters. */
 void BtlAiMgr_Reset(void) {
@@ -119,6 +128,18 @@ void BtlAiMgr_Reset(void) {
     for (i = 0; i < 2; i++) {
         AiThink_ResetSide(i, 0);
     }
+#ifdef PORT
+    if (TagTeam_Fighters() > 2) { /* the second pair: the same data, its own works (not owned: nothing to free) */
+        BtlAi *main = gBtlAi;
+        memset(&sAiPair2, 0, sizeof(BtlAi));
+        sAiPair2.data = main->data;
+        gBtlAi = &sAiPair2;
+        for (i = 2; i < TagTeam_Fighters(); i++) {
+            AiThink_ResetSide(i, 0);
+        }
+        gBtlAi = main;
+    }
+#endif
 }
 
 /* Resets one side's controller from its fighter. */
@@ -176,12 +197,12 @@ void BtlAiMgr_BuildRates(BtlAiWork *s) {
 
 /* Returns a side's aiType. */
 s32 BtlAiMgr_GetType(s32 side) {
-    return gBtlAi->work[side].type;
+    return gBtlAi->work[BTLAI_SLOT(side)].type;
 }
 
 /* Sets a side's aiType, rebuilds what depends on it and clears the side's work and action state. */
 void BtlAiMgr_SetType(s32 side, s32 aiType) {
-    BtlAiWork *s = &gBtlAi->work[side];
+    BtlAiWork *s = &gBtlAi->work[BTLAI_SLOT(side)];
 
     s->type = aiType;
     BtlAiMgr_BuildRates(s);
@@ -192,12 +213,12 @@ void BtlAiMgr_SetType(s32 side, s32 aiType) {
 
 /* Returns a side's CPU level. */
 s32 BtlAiMgr_GetLevel(s32 side) {
-    return gBtlAi->work[side].level;
+    return gBtlAi->work[BTLAI_SLOT(side)].level;
 }
 
 /* Sets a side's CPU level, rebuilds what depends on it and clears the side's work and action state. */
 void BtlAiMgr_SetLevel(s32 side, s32 cpuLevel) {
-    BtlAiWork *s = &gBtlAi->work[side];
+    BtlAiWork *s = &gBtlAi->work[BTLAI_SLOT(side)];
 
     s->level = cpuLevel;
     BtlAiMgr_BuildRates(s);
@@ -223,10 +244,17 @@ void BtlAiMgr_UpdateSight(void) {
     BtlAiVec d;
     BtlAiSegment seg;
 
+#ifdef PORT
+    BtlCharApi_GetPos(sPairBase, &a);
+    a.y -= BtlCharApi_GetHeight(sPairBase) * 0.5f;
+    BtlCharApi_GetPos(sPairBase + 1, &b);
+    b.y -= BtlCharApi_GetHeight(sPairBase + 1) * 0.5f;
+#else
     BtlCharApi_GetPos(0, &a);
     a.y -= BtlCharApi_GetHeight(0) * 0.5f;
     BtlCharApi_GetPos(1, &b);
     b.y -= BtlCharApi_GetHeight(1) * 0.5f;
+#endif
     Vec3_Sub(&d, &a, &b);
     gBtlAi->dist = Vec3_Length(&d);
     seg.from = a;
@@ -276,6 +304,27 @@ void BtlAiMgr_Update(void) {
             BtlAi_SendInput(s);
         }
     }
+#ifdef PORT
+    if (TagTeam_Fighters() > 2) { /* the second pair, objects 2 and 3 (above) */
+        BtlAi *main = gBtlAi;
+        gBtlAi = &sAiPair2;
+        sPairBase = 2;
+        BtlAiMgr_UpdateSight();
+        gBtlAi->frame++;
+        for (i = 2; i < BtlChar_GetCount() && i < 4; i++) {
+            BtlAiWork *s = &gBtlAi->work[BTLAI_SLOT(i)];
+
+            if (BtlCharApi_IsInputInjected(i) && s->param != NULL) {
+                BtlAiSense_Update(s);
+                AiThink_Think(s);
+                BtlAi_RunSeq(s);
+                BtlAi_SendInput(s);
+            }
+        }
+        sPairBase = 0;
+        gBtlAi = main;
+    }
+#endif
 }
 
 /* Picks at random one of the directions the stage limits allow: 0 always; in mode 2 also 1 when a fighter

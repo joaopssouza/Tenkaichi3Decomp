@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/battle.h"
 #include "battle/battle_setup.h"
 #include "battle/btl_pool.h"
@@ -129,7 +130,11 @@ void BtlScene_Init(s32 layerMask) {
     if (layerMask == 0) {
         gBtlScene->layerMask = BTL_SCENE_LAYER_ALL;
     }
+#ifdef PORT
+    BtlScene_SetCharCount(TagTeam_Fighters()); /* the effects' per-fighter pools: one per fighter (battle/tag_team.h) */
+#else
     BtlScene_SetCharCount(2);
+#endif
     if (Battle_IsSplitScreen()) {
         BtlScene_SetSingleView(0);
     } else {

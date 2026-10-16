@@ -1,0 +1,13 @@
+{
+  "name": "tenkaichi3-signaling",
+  "version": "1.0.0",
+  "description": "Self-hosted WebRTC signaling and matchmaking server for Tenkaichi 3 Web port",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test ../../test/signaling.test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

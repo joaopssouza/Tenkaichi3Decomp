@@ -16,6 +16,36 @@ s32 BtlPool_CalcArenaSize(void);
 void BtlPool_CarveArenas(void);
 u8 *BtlPool_InitSlot(BtlPoolSlot *slot, s32 size, u8 *mem);
 
+#ifdef PORT
+/* The port's Tag Team: characters 2 and 3 get effect pools of their own, slots 9 and 10, the size of the game's
+   per-character pools 7 and 8 (EftChar_SetPool, eft_q.c), from the port's extra memory (battle/tag_team.h). The
+   game's 9 slots are a fixed table: these two are kept beside it. */
+#include "battle/tag_team.h"
+#define TAG_POOL_FIRST BTL_POOL_SLOT_COUNT
+#define TAG_POOL_SIZE 0x19000
+extern unsigned Port_ExtraAlloc(unsigned size, unsigned align);
+static BtlPoolSlot sTagPool[TAG_FIGHTERS_MAX - 2];
+#define POOL_SLOT(slot) ((slot) >= TAG_POOL_FIRST ? &sTagPool[(slot) - TAG_POOL_FIRST] : &gBtlPool->slots[slot])
+/* The game never checks an arena's size: bit n is set when slot n hands out memory past its arena's end (that
+   memory is the next slot's), said once per slot. */
+#include <stdio.h>
+static u32 sOverflow;
+static void BtlPool_CheckArena(s32 slot, BtlPoolSlot *s) {
+    if (s->cur > s->base + s->size && !(sOverflow & (1u << slot))) {
+        sOverflow |= 1u << slot;
+        printf("bt3: battle pool %d ran over its arena (%d of %d bytes)\n", slot, (s32)(s->cur - s->base), s->size);
+    }
+}
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+EMSCRIPTEN_KEEPALIVE u32 Web_BattlePoolOverflow(void) { /* (tests: test/tag_offline.test.js) */
+    return sOverflow;
+}
+#endif
+#else
+#define POOL_SLOT(slot) (&gBtlPool->slots[slot])
+#endif
+
 /* Allocates the pool manager and the memory behind every arena slot. */
 void BtlPool_Init(s32 arg) {
     s32 size;
@@ -30,6 +60,39 @@ void BtlPool_Init(s32 arg) {
         memset(ARENA_MEM, 0, size);
         BtlPool_CarveArenas();
     }
+#ifdef PORT
+    sOverflow = 0;
+    {
+        s32 k;
+        s32 extra = TagTeam_Fighters() - 2;
+
+        /* The effect managers size what they allocate by the fighter count (BtlScene_SetCharCount): with four,
+           slot 1 needs about 1.17 MB of its 1.07 and slot 3 about 5.3 KB of its 5. Those two get arenas grown
+           per extra fighter, from the extra memory; their piece of arenaMem is left unused, so the game heap's
+           layout stays the same as in a two-fighter battle. */
+        if (extra > 0) {
+            static const s32 grow[BTL_POOL_SLOT_COUNT] = {0, 0x20000, 0, 0x400};
+
+            for (k = 0; k < BTL_POOL_SLOT_COUNT; k++) {
+                if (grow[k] != 0) {
+                    s32 bigger = gBtlPool->slots[k].size + extra * grow[k];
+                    u8 *mem = (u8 *)Port_ExtraAlloc(bigger, 32);
+
+                    if (mem != NULL) {
+                        BtlPool_InitSlot(&gBtlPool->slots[k], bigger, mem);
+                    }
+                }
+            }
+        }
+        for (k = 0; k + 2 < TagTeam_Fighters(); k++) {
+            u8 *mem = (u8 *)Port_ExtraAlloc(TAG_POOL_SIZE, 32);
+            if (mem != NULL) {
+                BtlPool_InitSlot(&sTagPool[k], TAG_POOL_SIZE, mem);
+                gBtlPool->arenaMask |= BTL_POOL_ARENA_BIT(TAG_POOL_FIRST + k);
+            }
+        }
+    }
+#endif
 }
 
 /* Frees the arena memory and the pool manager. */
@@ -47,13 +110,16 @@ void BtlPool_Term(void) {
 /* Allocates size bytes (rounded up to 32) from a slot: bump allocation for an arena, the heap otherwise. */
 void *BtlPool_Alloc(s32 slot, s32 size) {
     s32 aligned = BtlPool_AlignUp32(size);
-    BtlPoolSlot *s = &gBtlPool->slots[slot];
+    BtlPoolSlot *s = POOL_SLOT(slot);
     void *ptr;
 
     if (gBtlPool->arenaMask & BTL_POOL_ARENA_BIT(slot)) {
         ptr = s->cur;
         s->cur += aligned;
         s->used += aligned;
+#ifdef PORT
+        BtlPool_CheckArena(slot, s);
+#endif
     } else {
         s->used += aligned;
         ptr = Heap_Alloc(size, 0x20, 0, HEAP_ANY);
@@ -72,7 +138,7 @@ void BtlPool_Free(s32 slot, void *ptr) {
 
 /* Rewinds an arena slot to empty. */
 void BtlPool_Reset(s32 slot) {
-    BtlPoolSlot *s = &gBtlPool->slots[slot];
+    BtlPoolSlot *s = POOL_SLOT(slot);
 
     if (gBtlPool->arenaMask & BTL_POOL_ARENA_BIT(slot)) {
         s->cur = s->base;

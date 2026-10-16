@@ -31,7 +31,7 @@ PORTC = LAX + FOPEN + ["-std=gnu99", "-fno-strict-aliasing", "-ffp-contract=off"
 SOFT = ["-DSF_FAST_CALLS", "-include", "math.h", "-include", "stdlib.h", "-include", "port_libm.h"]
 HOSTC = LAX + FOPEN + ["-std=gnu99", "-fno-strict-aliasing", "-Wall", "-Wno-unused", "-Wno-misleading-indentation", "-w", f"-I{B / 'gen/gs'}",
          "-Iport/web/include", "--use-port=sdl3"]
-CXX = FOPEN + ["-std=c++17", "-DIMGUI_IMPL_OPENGL_ES3", "-fno-exceptions", "-fno-rtti", "-w", "-Iport/third_party/imgui", "-Iport/src/gs", "--use-port=sdl3"]
+CXX = FOPEN + ["-std=c++17", "-DIMGUI_IMPL_OPENGL_ES3", "-fno-threadsafe-statics", "-fno-exceptions", "-fno-rtti", "-w", "-Iport/third_party/imgui", "-Iport/src/gs", "--use-port=sdl3"]
 # Symbols x86 tolerates under two kinds and wasm-ld does not (a function and data with one name).
 PER_FILE = {"main.c": ["-DMainMenu_StartBallLoops=PortWeb_OverlayArea"]}  # overlay load address: never written on PC
 HW_FLOAT = {"plat_libm.c", "plat_fastvec.c"}  # compiled with hardware floating point in every build

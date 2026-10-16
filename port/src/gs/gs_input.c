@@ -55,7 +55,7 @@ static const struct { const char *name, *label; unsigned bit; int key; int pad; 
     {"rs_left", "Right stick left", 0, 0, -1}, {"rs_right", "Right stick right", 0, 0, -1},
 };
 
-static int sKeys[2][PORT_ACTIONS], sPadBtn[2][PORT_PAD_BUTTONS], sPadSlot[2];
+static int sKeys[4][PORT_ACTIONS], sPadBtn[4][PORT_PAD_BUTTONS], sPadSlot[4];
 static pthread_once_t sLoadOnce = PTHREAD_ONCE_INIT;
 
 static void defaults(int player) {
@@ -75,7 +75,7 @@ static void defaults(int player) {
 static void load(void) {
     char name[32];
     int p, a;
-    for (p = 0; p < 2; p++) {
+    for (p = 0; p < 4; p++) {
         defaults(p);
         for (a = 0; a < PORT_ACTIONS; a++) {
             snprintf(name, sizeof(name), "key_p%d_%s", p + 1, kActions[a].name);
@@ -102,7 +102,7 @@ void PortInput_ResetDefaults(int player) { pthread_once(&sLoadOnce, load); defau
 void PortInput_Save(void) {
     char name[32];
     int p, a;
-    for (p = 0; p < 2; p++) {
+    for (p = 0; p < 4; p++) {
         for (a = 0; a < PORT_ACTIONS; a++) {
             snprintf(name, sizeof(name), "key_p%d_%s", p + 1, kActions[a].name);
             Port_SettingSave(name, sKeys[p][a]);
@@ -254,7 +254,7 @@ static void clash_square(int socket, unsigned *btn, unsigned char *lx, unsigned 
     extern void *BtlChar_FindByObjId(int objId); /* the game: the fighter of a side, NULL outside a fight */
     extern int BtlAct_GetCurrent(void *chr);     /* its action */
     extern int Port_NetActive(void), Port_NetMe(void);
-    static int dir[2], was[2];
+    static int dir[4], was[4];
     int side = Port_NetActive() ? Port_NetMe() : socket, in = 0, down = (*btn & B_SQUARE) != 0;
     void *chr;
 
@@ -311,7 +311,7 @@ int Port_PadRead(int socket, unsigned char *data) {
     SDL_Gamepad *g;
     int a;
 
-    if (!GsGpu_Enabled() || socket < 0 || socket > 1) {
+    if (!GsGpu_Enabled() || socket < 0 || socket > 3) {
         return 0;
     }
     pthread_once(&sLoadOnce, load);
@@ -353,8 +353,8 @@ int Port_PadRead(int socket, unsigned char *data) {
     }
 #ifdef __EMSCRIPTEN__
     if (socket == 0) { /* the browser page's touch controls (port/web/src/web_touch.c) */
-        extern unsigned Web_TouchRead(unsigned char *lx, unsigned char *ly);
-        btn |= Web_TouchRead(&lx, &ly);
+        extern unsigned Web_TouchRead(unsigned char *lx, unsigned char *ly, unsigned char *rx, unsigned char *ry);
+        btn |= Web_TouchRead(&lx, &ly, &rx, &ry);
     }
     if (gWebInputHeld) {
         btn = 0;

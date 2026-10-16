@@ -154,7 +154,7 @@ static void vblank_wait(void) {
 }
 
 #undef next
-static unsigned char sPadLast[2][18]; /* (defined with the pads below) */
+static unsigned char sPadLast[4][18]; /* (defined with the pads below) */
 void Port_VBlank(void) {
 #ifdef __EMSCRIPTEN__
     { /* browser build: how fast the game runs (every 300 vertical blanks: blanks per second of real time) */
@@ -272,7 +272,12 @@ long Port_PadPlayPos(void) { return sPadPlay != NULL ? ftell(sPadPlay) : -1; }
 void Port_PadPlaySeek(long pos) { if (sPadPlay != NULL) { fseek(sPadPlay, pos >= 0 ? pos : 0, SEEK_SET); } }
 
 /* The pads as the game last read them (for BT3_PAD_TABLE, below). */
-static unsigned char sPadLast[2][18] = {{0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80}, {0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80}};
+static unsigned char sPadLast[4][18] = {
+    {0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80},
+    {0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80},
+    {0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80},
+    {0xFF, 0xFF, 0x80, 0x80, 0x80, 0x80}
+};
 static int pad_read(int socket, unsigned char *data);
 
 int scePad2Read(int socket, unsigned char *data) {
@@ -281,12 +286,12 @@ int scePad2Read(int socket, unsigned char *data) {
     int n;
 
     if (Port_NetActive()) {
-        Port_NetInput(socket, data); /* both pads come from the exchange with the other player */
+        Port_NetInput(socket, data); /* all pads come from the exchange with the connected players */
         n = 18;
     } else {
         n = pad_read(socket, data);
     }
-    if (socket >= 0 && socket < 2) {
+    if (socket >= 0 && socket < 4) {
         memcpy(sPadLast[socket], data, 18);
     }
     return n;

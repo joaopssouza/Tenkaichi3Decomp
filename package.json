@@ -1,0 +1,17 @@
+{
+  "name": "projeto-engenharia-reversa",
+  "version": "1.0.0",
+  "description": "Workspace de Engenharia Reversa equipado com Superpowers, REA e Code Review Skills",
+  "private": true,
+  "scripts": {
+    "rea": "rea",
+    "pr-analyzer": "python .agents/skills/code-review-skill/scripts/pr-analyzer.py",
+    "signaling": "node port/matchmaking/server.js",
+    "test": "node --test test/*.test.js",
+    "test:signaling": "node --test test/signaling.test.js"
+  },
+  "dependencies": {
+    "rea-agents": "^6.4.0",
+    "ws": "^8.18.0"
+  }
+}

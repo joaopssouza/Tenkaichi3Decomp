@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/tag_team.h"
 #include "battle/btl_char_ctl.h"
 #include "sys/mathf.h"
 
@@ -186,6 +187,12 @@ void BtlChar_PlaceAtStart(BtlCtlChr *chr) {
     Vec4 pos;
     Vec4 rot;
 
+#ifdef PORT
+    if (TagTeam_Seat(chr) >= 2) { /* a Tag Team extra fighter: beside its leader (battle/tag_team.h) */
+        BtlChar_Place(chr, &pos, &rot, TagTeam_StartPlace(TagTeam_Seat(chr), &pos, &rot));
+        return;
+    }
+#endif
     BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 0));
 }
 
@@ -195,6 +202,12 @@ void BtlChar_PlaceRestart(BtlCtlChr *chr) {
     Vec4 rot;
 
     if (BtlChar_TestFlag(chr, 0xF3)) {
+#ifdef PORT
+        if (TagTeam_Seat(chr) >= 2) {
+            BtlChar_Place(chr, &pos, &rot, TagTeam_StartPlace(TagTeam_Seat(chr), &pos, &rot));
+            return;
+        }
+#endif
         BtlChar_Place(chr, &pos, &rot, BtlStage_GetStartPlace(chr->player, &pos, &rot, 1));
     }
 }

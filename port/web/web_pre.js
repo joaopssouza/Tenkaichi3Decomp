@@ -53,6 +53,26 @@ Module.webDiscIndex = async function () {
 
 // Called by Web_Fopen (port/web/target/disc_web.c) before a file is opened for reading. 1: there (or not ours).
 Module.webDiscEnsure = async function (path) {
+    const texMatch = /^\/?textures\/(.*)$/.exec(path);
+    if (texMatch !== null) {
+        const full = '/textures/' + texMatch[1].replace(/\/+/g, '/');
+        try {
+            const stat = FS.stat(full);
+            if (stat && stat.size > 0) return 1;
+        } catch (_) {}
+        try {
+            const r = await fetch(full);
+            if (r.ok) {
+                const b = new Uint8Array(await r.arrayBuffer());
+                FS.mkdirTree(full.slice(0, full.lastIndexOf('/')));
+                FS.writeFile(full, b);
+                return 1;
+            }
+        } catch (e) {
+            console.warn('Failed to fetch texture:', full, e);
+        }
+        return 0;
+    }
     const m = /^\/?gamedata\/(.*)$/.exec(path);
     if (m === null || Module.webIndex === null) return 1;
     const rel = m[1].replace(/\/+/g, '/'), ent = Module.webIndex[rel];
@@ -72,3 +92,4 @@ Module.webDiscEnsure = async function (path) {
     }
     return 1;
 };
+
